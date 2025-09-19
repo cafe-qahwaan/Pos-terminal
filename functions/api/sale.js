@@ -1,6 +1,4 @@
 // POST /api/sale -> records a full order (cart + payment info)
-import { v4 as uuidv4 } from "uuid";
-
 export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json();
@@ -9,20 +7,25 @@ export async function onRequestPost({ request, env }) {
     if (!Array.isArray(cart) || cart.length === 0) {
       return new Response("Cart is empty", { status: 400 });
     }
+    if (!payment_method || !staff) {
+      return new Response("Missing payment_method or staff", { status: 400 });
+    }
 
-    const order_id = uuidv4();
-    const change_due = amount_received - cart.reduce((s, i) => s + (i.price * i.qty), 0);
+    const order_id = crypto.randomUUID(); // built-in (no npm)
+    const subtotal = cart.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
+    const change_due = Number(amount_received || 0) - subtotal;
 
+    const nowIso = new Date().toISOString();
     const rows = cart.map(item => ({
       order_id,
-      ts: new Date().toISOString(),
-      item: item.name,
-      qty: item.qty,
-      price: item.price,
-      payment_method,
-      staff,
-      amount_received,
-      change_due
+      ts: nowIso,
+      item: String(item.name),
+      qty: Number(item.qty),
+      price: Number(item.price),
+      payment_method: String(payment_method),
+      staff: String(staff),
+      amount_received: Number(amount_received || 0),
+      change_due: Number(change_due)
     }));
 
     const resp = await fetch(`${env.SUPABASE_URL}/rest/v1/sales`, {
