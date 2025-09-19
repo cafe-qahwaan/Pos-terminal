@@ -1,28 +1,29 @@
-// Cloudflare Pages Function: handles POST /api/sale
+// POST /api/sale -> records a full order (cart + payment info)
+import { v4 as uuidv4 } from "uuid";
+
 export async function onRequestPost({ request, env }) {
   try {
-    const form = await request.formData();
-    const item = (form.get("item") || "").toString().trim();
-    const qty = Number(form.get("qty"));
-    const price = Number(form.get("price"));
-    const payment_method = (form.get("payment_method") || "").toString().trim();
-    const staff = (form.get("staff") || "").toString().trim();
+    const body = await request.json();
+    const { cart, payment_method, staff, amount_received } = body;
 
-    if (!item || !staff || !["Cash","Card","Online"].includes(payment_method)) {
-      return new Response("Invalid input", { status: 400 });
-    }
-    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0) {
-      return new Response("Invalid numbers", { status: 400 });
+    if (!Array.isArray(cart) || cart.length === 0) {
+      return new Response("Cart is empty", { status: 400 });
     }
 
-    const sale = {
+    const order_id = uuidv4();
+    const change_due = amount_received - cart.reduce((s, i) => s + (i.price * i.qty), 0);
+
+    const rows = cart.map(item => ({
+      order_id,
       ts: new Date().toISOString(),
-      item,
-      qty,
-      price: Number(price.toFixed(2)),
+      item: item.name,
+      qty: item.qty,
+      price: item.price,
       payment_method,
-      staff
-    };
+      staff,
+      amount_received,
+      change_due
+    }));
 
     const resp = await fetch(`${env.SUPABASE_URL}/rest/v1/sales`, {
       method: "POST",
@@ -32,7 +33,7 @@ export async function onRequestPost({ request, env }) {
         "Content-Type": "application/json",
         Prefer: "return=minimal"
       },
-      body: JSON.stringify([sale])
+      body: JSON.stringify(rows)
     });
 
     if (!resp.ok) {
@@ -42,11 +43,11 @@ export async function onRequestPost({ request, env }) {
 
     return new Response(`<!doctype html>
 <html><head><meta charset="utf-8"><title>Saved</title>
-<meta http-equiv="refresh" content="1; url=/" />
-<style>body{font-family:system-ui;display:grid;place-items:center;height:100vh}</style>
+<meta http-equiv="refresh" content="2; url=/" />
+<style>body{font-family:monospace;background:#111;color:#0f0;display:flex;align-items:center;justify-content:center;height:100vh}</style>
 </head><body>
-  <p>✅ Sale recorded. Redirecting… <a href="/">Back</a></p>
-</body></html>`, { headers: { "Content-Type": "text/html; charset=utf-8" }});
+  <div><h2>✅ Order recorded</h2><p>Order ID: ${order_id}</p></div>
+</body></html>`, { headers: { "Content-Type": "text/html" }});
   } catch (e) {
     return new Response("Server error: " + e.message, { status: 500 });
   }
