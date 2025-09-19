@@ -1,4 +1,4 @@
-// POST /api/sale -> records a full order (cart + payment info) and returns a printable receipt page
+// POST /api/sale -> writes ONE row to public.orders AND line items to public.sales, returns a compact receipt
 export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json();
@@ -15,10 +15,37 @@ export async function onRequestPost({ request, env }) {
     const subtotal = cart.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
     const received = Number(amount_received || 0);
     const change_due = received - subtotal;
+    const item_count = cart.reduce((s, i) => s + Number(i.qty), 0);
     const nowIso = new Date().toISOString();
 
-    // Insert one row per cart line
-    const rows = cart.map(item => ({
+    // 1) Insert the order summary
+    const ordResp = await fetch(`${env.SUPABASE_URL}/rest/v1/orders`, {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify([{
+        id: order_id,
+        subtotal,
+        amount_received: received,
+        change_due,
+        item_count,
+        payment_method,
+        staff,
+        cart
+      }])
+    });
+
+    if (!ordResp.ok) {
+      const text = await ordResp.text();
+      return new Response("DB error (orders): " + text, { status: 500 });
+    }
+
+    // 2) Insert line items into sales
+    const salesRows = cart.map(item => ({
       order_id,
       ts: nowIso,
       item: String(item.name),
@@ -30,7 +57,7 @@ export async function onRequestPost({ request, env }) {
       change_due: Number(change_due)
     }));
 
-    const resp = await fetch(`${env.SUPABASE_URL}/rest/v1/sales`, {
+    const salesResp = await fetch(`${env.SUPABASE_URL}/rest/v1/sales`, {
       method: "POST",
       headers: {
         apikey: env.SUPABASE_SERVICE_KEY,
@@ -38,26 +65,25 @@ export async function onRequestPost({ request, env }) {
         "Content-Type": "application/json",
         Prefer: "return=minimal"
       },
-      body: JSON.stringify(rows)
+      body: JSON.stringify(salesRows)
     });
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      return new Response("DB error: " + text, { status: 500 });
+    if (!salesResp.ok) {
+      // Cleanup: remove the order row so we don't leave an orphan
+      await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}`, {
+        method: "DELETE",
+        headers: {
+          apikey: env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`
+        }
+      });
+      const text = await salesResp.text();
+      return new Response("DB error (sales): " + text, { status: 500 });
     }
 
-    // Build receipt HTML
+    // 3) Return a compact receipt (single-order summary)
     const money = n => "£" + Number(n || 0).toFixed(2);
     const when = new Date().toLocaleString("en-GB", { hour12: false });
-    const lines = cart.map(i => `
-      <tr>
-        <td>${escapeHtml(i.name)}</td>
-        <td class="r">${Number(i.qty)}</td>
-        <td class="r">${money(i.price)}</td>
-        <td class="r">${money(Number(i.price) * Number(i.qty))}</td>
-      </tr>
-    `).join("");
-
     const html = `<!doctype html>
 <html>
 <head>
@@ -71,16 +97,12 @@ export async function onRequestPost({ request, env }) {
     h1 { margin: 0 0 2px; font-size: 1.2rem; }
     .muted { color: var(--muted); font-size: .9rem; }
     table { width:100%; border-collapse: collapse; margin-top: 14px; }
-    th, td { padding:8px 6px; border-bottom:1px dashed #ddd; }
-    th { text-align:left; font-weight:600; }
+    td { padding:8px 6px; border-bottom:1px dashed #ddd; }
     .r { text-align:right; }
     .tot { font-weight:700; }
     .actions { margin-top:16px; display:flex; gap:8px; }
     button { padding:10px 12px; border:1px solid #ddd; background:#f9fafb; border-radius:8px; cursor:pointer; }
-    @media print {
-      .actions { display:none; }
-      body { margin:0; }
-    }
+    @media print { .actions{display:none} body{margin:0} }
   </style>
 </head>
 <body>
@@ -89,19 +111,14 @@ export async function onRequestPost({ request, env }) {
     <div class="muted">Order: ${order_id}<br>${when}</div>
 
     <table>
-      <thead>
-        <tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th></tr>
-      </thead>
       <tbody>
-        ${lines}
+        <tr><td>Items</td><td class="r">${item_count}</td></tr>
+        <tr><td>Subtotal</td><td class="r tot">${money(subtotal)}</td></tr>
+        <tr><td>Amount received</td><td class="r">${money(received)}</td></tr>
+        <tr><td>Change due</td><td class="r tot">${money(change_due)}</td></tr>
+        <tr><td>Payment</td><td class="r">${escapeHtml(payment_method)}</td></tr>
+        <tr><td>Staff</td><td class="r">${escapeHtml(staff)}</td></tr>
       </tbody>
-      <tfoot>
-        <tr><td colspan="3" class="r">Subtotal</td><td class="r tot">${money(subtotal)}</td></tr>
-        <tr><td colspan="3" class="r">Amount received</td><td class="r">${money(received)}</td></tr>
-        <tr><td colspan="3" class="r">Change due</td><td class="r tot">${money(change_due)}</td></tr>
-        <tr><td colspan="3" class="r">Payment method</td><td class="r">${escapeHtml(payment_method)}</td></tr>
-        <tr><td colspan="3" class="r">Staff</td><td class="r">${escapeHtml(staff)}</td></tr>
-      </tfoot>
     </table>
 
     <div class="actions">
@@ -109,10 +126,6 @@ export async function onRequestPost({ request, env }) {
       <button onclick="location.href='/'">⬅️ New order</button>
     </div>
   </div>
-  <script>
-    // Auto-open print on mobile only if you want:
-    // window.print();
-  </script>
 </body>
 </html>`;
 
@@ -123,7 +136,4 @@ export async function onRequestPost({ request, env }) {
   }
 }
 
-// simple HTML escape to avoid broken receipt if names have < > "&
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
