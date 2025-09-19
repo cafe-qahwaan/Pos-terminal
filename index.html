@@ -1,333 +1,178 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Cafe Qahwaan POS</title>
-<style>
-  :root{
-    --bg:linear-gradient(135deg,#1a1d2e,#2a1f1d);
-    --card:#201f2b; --ink:#fdfdfd; --muted:#c1c1c1;
-    --accent:#ff914d; --accent2:#2ecc71; --danger:#ef4444;
-    --chip:#2b2a38; --line:#3a3845
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  .shell{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:16px}
-  header{text-align:center;padding:12px 0}
-  header h1{margin:0;font-size:1.8rem;color:var(--accent)}
-  .row{display:grid;gap:16px}
-  @media (min-width:980px){.row{grid-template-columns:1fr 420px}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
-  h3{margin:0 0 10px}
-  .muted{color:var(--muted);font-size:.92rem}
-
-  /* Accordion (category) */
-  details{background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
-  summary{list-style:none;cursor:pointer;font-weight:700;color:var(--accent)}
-  summary::-webkit-details-marker{display:none}
-
-  /* Item grid */
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-  @media (max-width:460px){.grid{grid-template-columns:repeat(2,1fr)}}
-  .btn{
-    padding:14px;border-radius:12px;border:1px solid var(--line);background:#333;color:#fff;text-align:center;
-    font-weight:600;cursor:pointer;user-select:none;transition:background .2s,transform .1s
-  }
-  .btn:hover{background:#444}
-  .btn:active{transform:scale(.97)}
-  .btn.small{padding:8px;font-weight:500}
-  .btn.green{background:var(--accent2)}
-  .btn.red{background:var(--danger)}
-
-  /* Cart */
-  .cart-list{display:grid;gap:8px}
-  .cart-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
-  .qtybox{display:flex;gap:6px}
-  .qtybox .btn{width:40px}
-  .money{font-variant-numeric:tabular-nums}
-  hr{border:0;border-top:1px solid var(--line);margin:12px 0}
-  input,select{
-    width:100%;padding:12px;background:#2a2a38;color:#fff;border:1px solid var(--line);border-radius:10px;font-size:1rem
-  }
-  .flex{display:flex;gap:10px;align-items:center}
-  .space{display:flex;justify-content:space-between;align-items:center}
-  .right{text-align:right}
-  .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}
-  .sticky-bottom{
-    position:sticky;bottom:0;background:linear-gradient(to top,var(--card),transparent);
-    padding-top:8px
-  }
-  .pill{padding:8px 10px;border-radius:999px;background:#1b2130;border:1px solid var(--line)}
-  .admin{background:#141824;border:1px dashed var(--line)}
-</style>
+  <meta charset="utf-8">
+  <title>Cafe Qahwaan — POS</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: sans-serif; margin:0; background:#1e1e2f; color:#f5f5f5; }
+    header { background:#111; padding:12px; display:flex; align-items:center; }
+    header img { height:40px; margin-right:10px; border-radius:8px; }
+    header h1 { margin:0; font-size:1.4em; color:#ff9933; }
+    main { display:flex; flex-wrap:wrap; }
+    section { flex:1 1 50%; padding:10px; box-sizing:border-box; }
+    h2 { margin-top:0; cursor:pointer; background:#333; padding:6px; border-radius:6px; }
+    .items { display:none; margin-top:6px; }
+    .items button { display:block; width:100%; padding:10px; margin:3px 0; background:#444; color:white; border:none; border-radius:6px; font-size:1em; }
+    .items button:hover { background:#666; }
+    .cart { background:#222; padding:10px; border-radius:8px; }
+    .cart table { width:100%; font-size:0.9em; }
+    .cart td, .cart th { padding:4px; }
+    .total { font-size:1.2em; margin-top:10px; }
+    input, select { padding:6px; margin:4px 0; width:100%; border-radius:4px; border:1px solid #555; background:#333; color:white; }
+    button.action { padding:10px; margin-top:6px; width:48%; font-size:1em; border:none; border-radius:6px; }
+    .submit { background:#28a745; color:white; }
+    .clear { background:#dc3545; color:white; }
+    .admin { margin-top:20px; background:#111; padding:10px; border-radius:8px; }
+  </style>
 </head>
 <body>
   <header>
-    <h1>☕ Cafe Qahwaan — POS</h1>
-    <p class="muted">Tap, total, and serve with style</p>
+    <img src="/logo.png" alt="Cafe Qahwaan">
+    <h1>Cafe Qahwaan — POS</h1>
   </header>
-
-<div class="shell">
-  <div class="row">
-    <!-- LEFT: Menu categories -->
-    <div class="card" id="menuCard">
-      <div id="menuLoading" class="muted">Loading menu…</div>
-      <div id="menu"></div>
-    </div>
-
-    <!-- RIGHT: Cart / Checkout -->
-    <div class="card" id="cartCard">
-      <h3>🛒 Cart</h3>
-      <div id="emptyCart" class="muted">No items yet. Tap buttons on the left to add.</div>
-      <div id="cart" class="cart-list"></div>
-
-      <div class="sticky-bottom">
-        <hr>
-        <div class="space">
-          <div class="muted">Subtotal</div>
-          <div class="money" id="subtotal">£0.00</div>
-        </div>
-
-        <div class="mt12">
-          <label class="muted">Payment method</label>
-          <select id="payment">
-            <option>Cash</option><option>Card</option><option>Online</option>
-          </select>
-        </div>
-
-        <div class="mt12">
-          <label class="muted">Staff</label>
-          <input id="staff" placeholder="Name or initials" />
-        </div>
-
-        <div class="mt12">
-          <div class="space">
-            <label class="muted">Amount received</label>
-            <div class="flex">
-              <button class="btn small pill" data-cash="50">50</button>
-              <button class="btn small pill" data-cash="100">100</button>
-              <button class="btn small pill" data-cash="500">500</button>
-            </div>
+  <main>
+    <section id="menu"><h2>Loading menu…</h2></section>
+    <section>
+      <div class="cart">
+        <h2>🛒 Cart</h2>
+        <table id="cart"><tr><td>No items yet. Tap buttons on the left to add.</td></tr></table>
+        <div class="total">Subtotal: <span id="subtotal">£0.00</span></div>
+        <label>Payment method
+          <select id="payment"><option>Cash</option><option>Card</option></select>
+        </label>
+        <label>Staff <input id="staff" placeholder="Name or initials"></label>
+        <label>Amount received
+          <div>
+            <button type="button" onclick="quickCash(50)">50</button>
+            <button type="button" onclick="quickCash(100)">100</button>
+            <button type="button" onclick="quickCash(500)">500</button>
           </div>
-          <input id="received" inputmode="decimal" placeholder="0.00" />
+          <input id="received" type="number" step="0.01">
+        </label>
+        <div class="total">Change due: <span id="change">£0.00</span></div>
+        <div style="display:flex;justify-content:space-between">
+          <button class="action submit" onclick="submitOrder()">Submit order</button>
+          <button class="action clear" onclick="clearCart()">Clear cart</button>
         </div>
-
-        <div class="space mt8">
-          <div class="muted">Change due</div>
-          <div class="money" id="change">£0.00</div>
-        </div>
-
-        <button class="btn green mt16" id="submitOrder">Submit order</button>
-        <button class="btn red mt8" id="clearCart">Clear cart</button>
       </div>
-    </div>
-  </div>
 
-  <!-- Admin: update price -->
-  <div class="card admin mt8">
-    <div class="space">
-      <strong>Admin — Update Price</strong>
-      <span class="muted">Only visible to logged-in staff</span>
-    </div>
-    <div class="mt12">
-      <label class="muted">Item</label>
-      <select id="adminItem"></select>
-    </div>
-    <div class="mt12">
-      <label class="muted">New price</label>
-      <input id="adminPrice" inputmode="decimal" placeholder="0.00" />
-    </div>
-    <div class="mt12">
-      <button class="btn" id="updatePriceBtn">Update price</button>
-      <span id="adminMsg" class="muted" style="margin-left:10px"></span>
-    </div>
-  </div>
-</div>
+      <div class="admin">
+        <h2>⚙️ Admin — Update Price</h2>
+        <label>Item <select id="adminItem"></select></label>
+        <label>New price <input id="adminPrice" type="number" step="0.01"></label>
+        <button class="action submit" onclick="updatePrice()">Update</button>
+      </div>
+    </section>
+  </main>
 
 <script>
-/* --------- state --------- */
-let MENU = {};          // category -> [items]
-let FLAT = [];          // all items flat for admin dropdown
-let CART = new Map();   // key: item.id -> {id,name,price,qty}
+let menuData = [];
+let cart = [];
 
-/* --------- helpers --------- */
-const £ = n => "£" + (Number(n||0).toFixed(2));
-function total(){
-  let t = 0;
-  for(const it of CART.values()) t += it.price * it.qty;
-  return t;
-}
-function renderTotals(){
-  const t = total();
-  document.getElementById('subtotal').textContent = £(t);
-  const rec = Number(document.getElementById('received').value || 0);
-  document.getElementById('change').textContent = £(rec - t);
-}
-function renderCart(){
-  const cont = document.getElementById('cart');
-  const empty = document.getElementById('emptyCart');
-  cont.innerHTML = "";
-  if(CART.size === 0){ empty.style.display="block"; renderTotals(); return; }
-  empty.style.display="none";
-  for(const it of CART.values()){
-    const row = document.createElement('div');
-    row.className = 'cart-row';
-    row.innerHTML = `
-      <div><strong>${it.name}</strong><div class="muted">£${it.price.toFixed(2)} each</div></div>
-      <div class="qtybox">
-        <button class="btn small" data-act="dec" data-id="${it.id}">−</button>
-        <div class="pill" style="min-width:44px;text-align:center">${it.qty}</div>
-        <button class="btn small" data-act="inc" data-id="${it.id}">+</button>
-      </div>
-      <div class="money right">£${(it.price*it.qty).toFixed(2)}</div>
-      <button class="btn small red" data-act="rm" data-id="${it.id}">✕</button>
-    `;
-    cont.appendChild(row);
-  }
-  renderTotals();
-}
-function addToCart(item){
-  const existing = CART.get(item.id);
-  if(existing){ existing.qty += 1; }
-  else { CART.set(item.id, { id:item.id, name:item.name, price:Number(item.price), qty:1 }); }
-  renderCart();
-}
+const money = n => "£" + (Number(n||0).toFixed(2));
 
-/* --------- build menu UI --------- */
-function renderMenu(){
-  const menuDiv = document.getElementById('menu');
-  document.getElementById('menuLoading').style.display="none";
-  menuDiv.innerHTML = "";
-  const adminSel = document.getElementById('adminItem');
-  adminSel.innerHTML = "";
-  FLAT.length = 0;
-
-  const cats = Object.keys(MENU).sort();
-  cats.forEach((cat, idx) => {
-    const details = document.createElement('details');
-    if(idx===0) details.open = true;
-    const summary = document.createElement('summary');
-    summary.textContent = cat;
-    details.appendChild(summary);
-
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    MENU[cat].forEach(it => {
-      FLAT.push(it);
-      // item button
-      const b = document.createElement('button');
-      b.className = 'btn';
-      b.type = 'button';
-      b.innerHTML = `${it.name}<br><span class="muted">£${Number(it.price).toFixed(2)}</span>`;
-      b.addEventListener('click', () => addToCart(it));
-      grid.appendChild(b);
-
-      // admin dropdown option
-      const opt = document.createElement('option');
-      opt.value = it.id;
-      opt.textContent = `${it.name} — £${Number(it.price).toFixed(2)} (${cat})`;
-      adminSel.appendChild(opt);
-    });
-
-    details.appendChild(grid);
-    menuDiv.appendChild(details);
-  });
-}
-
-/* --------- load menu from /api/menu --------- */
 async function loadMenu(){
-  try{
-    const r = await fetch('/api/menu');
-    if(!r.ok) throw new Error(await r.text());
-    MENU = await r.json();
-    renderMenu();
-  }catch(e){
-    document.getElementById('menuLoading').textContent = 'Failed to load menu: ' + e.message;
-  }
+  const res = await fetch("/api/menu");
+  menuData = await res.json();
+  const menuDiv = document.getElementById("menu");
+  menuDiv.innerHTML = "";
+  Object.keys(menuData).forEach(cat=>{
+    const h = document.createElement("h2");
+    h.textContent = cat;
+    h.onclick = () => { d.style.display = (d.style.display=="block"?"none":"block"); };
+    menuDiv.appendChild(h);
+    const d = document.createElement("div");
+    d.className="items";
+    menuData[cat].forEach(it=>{
+      const b = document.createElement("button");
+      b.textContent = it.name+" – "+money(it.price);
+      b.onclick = ()=>addToCart(it);
+      d.appendChild(b);
+    });
+    menuDiv.appendChild(d);
+  });
+
+  // fill admin dropdown
+  const sel = document.getElementById("adminItem");
+  sel.innerHTML="";
+  Object.values(menuData).flat().forEach(it=>{
+    const o = document.createElement("option");
+    o.value=it.id;
+    o.textContent=it.name+" ("+money(it.price)+")";
+    sel.appendChild(o);
+  });
 }
 
-/* --------- cart controls --------- */
-document.getElementById('cart').addEventListener('click', (ev)=>{
-  const btn = ev.target.closest('button');
-  if(!btn) return;
-  const id = Number(btn.dataset.id);
-  const act = btn.dataset.act;
-  const it = CART.get(id);
-  if(!it) return;
-  if(act==='inc') it.qty += 1;
-  if(act==='dec'){ it.qty -= 1; if(it.qty<=0) CART.delete(id); }
-  if(act==='rm') CART.delete(id);
+function addToCart(it){
+  const found = cart.find(c=>c.id==it.id);
+  if(found){ found.qty++; } else { cart.push({...it, qty:1}); }
   renderCart();
-});
-document.getElementById('clearCart').addEventListener('click', ()=>{
-  CART.clear(); renderCart();
-});
+}
 
-/* --------- change calculator --------- */
-document.getElementById('received').addEventListener('input', renderTotals);
-document.querySelectorAll('[data-cash]').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.getElementById('received').value = b.dataset.cash;
-    renderTotals();
+function renderCart(){
+  const tbl = document.getElementById("cart");
+  tbl.innerHTML="";
+  if(cart.length==0){ tbl.innerHTML="<tr><td>No items.</td></tr>"; return; }
+  cart.forEach(c=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${c.name}</td><td>${c.qty}</td>
+      <td>${money(c.price*c.qty)}</td>
+      <td><button onclick="decItem(${c.id})">-</button>
+      <button onclick="incItem(${c.id})">+</button></td>`;
+    tbl.appendChild(tr);
   });
-});
+  const t = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  document.getElementById("subtotal").textContent=money(t);
+  const rec = Number(document.getElementById("received").value||0);
+  document.getElementById("change").textContent=money(rec - t);
+}
 
-/* --------- submit order --------- */
-document.getElementById('submitOrder').addEventListener('click', async ()=>{
-  if(CART.size===0){ alert('Cart is empty'); return; }
-  const payment = document.getElementById('payment').value;
-  const staff = document.getElementById('staff').value.trim();
-  if(!staff){ alert('Enter staff'); return; }
-  const amount_received = Number(document.getElementById('received').value || 0);
+function incItem(id){ cart.find(c=>c.id==id).qty++; renderCart(); }
+function decItem(id){ const f=cart.find(c=>c.id==id); if(f.qty>1)f.qty--; else cart=cart.filter(c=>c.id!=id); renderCart(); }
+function clearCart(){ cart=[]; renderCart(); }
 
-  const cart = Array.from(CART.values()).map(it => ({
-    id: it.id, name: it.name, price: Number(it.price), qty: Number(it.qty)
-  }));
+function quickCash(n){ document.getElementById("received").value=n; renderCart(); }
+
+async function submitOrder(){
+  if(cart.length==0){ alert("Cart empty"); return; }
+  const body = {
+    cart,
+    payment_method: document.getElementById("payment").value,
+    staff: document.getElementById("staff").value.trim(),
+    amount_received: Number(document.getElementById("received").value || 0)
+  };
+  if(!body.staff){ alert("Enter staff"); return; }
 
   try{
-    const r = await fetch('/api/sale', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ cart, payment_method: payment, staff, amount_received })
+    const res = await fetch("/api/sale", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
     });
-    if(!r.ok){
-      const t = await r.text();
-      alert('Error saving: ' + t);
+    if(!res.ok){
+      const t = await res.text();
+      alert("Error saving: " + t);
       return;
     }
-    const html = await r.text();
+    // Show the printable receipt returned by the server
+    const html = await res.text();
     document.open(); document.write(html); document.close();
-  }catch(e){
-    alert('Network error: ' + e.message);
+  }catch(err){
+    alert("Network error: " + err.message);
   }
-});
+}
 
-/* --------- admin: update price --------- */
-document.getElementById('updatePriceBtn').addEventListener('click', async ()=>{
-  const id = Number(document.getElementById('adminItem').value);
-  const price = Number(document.getElementById('adminPrice').value);
-  const msg = document.getElementById('adminMsg');
-  if(!id || !(price>=0)){ msg.textContent = 'Pick an item and enter a valid price'; return; }
-  msg.textContent = 'Updating…';
-  try{
-    const r = await fetch('/api/update_price', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ id, new_price: price })
-    });
-    if(!r.ok) throw new Error(await r.text());
-    msg.textContent = 'Updated ✓ Reloading menu…';
-    await loadMenu();
-    document.getElementById('adminPrice').value = '';
-    msg.textContent = 'Updated ✓';
-  }catch(e){
-    msg.textContent = 'Error: ' + e.message;
-  }
-});
+async function updatePrice(){
+  const id = document.getElementById("adminItem").value;
+  const p = Number(document.getElementById("adminPrice").value);
+  if(!p) return alert("Enter price");
+  const res = await fetch("/api/update_price",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,new_price:p})});
+  if(res.ok){ alert("Updated"); loadMenu(); } else alert("Error");
+}
 
-/* --------- boot --------- */
+document.getElementById("received").addEventListener("input",renderCart);
+
 loadMenu();
 </script>
 </body>
