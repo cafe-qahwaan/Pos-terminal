@@ -11,7 +11,7 @@ export async function onRequestPost({ request, env }) {
       return new Response("Missing payment_method or staff", { status: 400 });
     }
 
-    const order_id = crypto.randomUUID(); // built-in (no npm)
+    const order_id = crypto.randomUUID(); // ✅ built-in in Cloudflare Workers
     const subtotal = cart.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
     const change_due = Number(amount_received || 0) - subtotal;
 
