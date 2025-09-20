@@ -62,7 +62,7 @@
         <table id="cart"><tr><td>No items yet. Tap buttons on the left to add.</td></tr></table>
         <div class="total">Subtotal: <span id="subtotal">£0.00</span></div>
         <label>Payment method
-          <select id="payment"><option>Cash</option><option>Card</option></select>
+          <select id="payment"><option>Cash</option><option>Card</option><option>Online</option></select>
         </label>
         <label>Staff <input id="staff" placeholder="Name or initials"></label>
         <label>Amount received
@@ -75,12 +75,13 @@
         </label>
         <div class="total">Change due: <span id="change">£0.00</span></div>
         <div style="display:flex;justify-content:space-between">
+          <!-- Quick Sale (immediate) -->
           <button class="action submit" onclick="submitOrder()">Submit order</button>
           <button class="action clear" onclick="clearCart()">Clear cart</button>
         </div>
-        <!-- New tab controls -->
+        <!-- Tab finalize only (auto-save is enabled, so no Save/Hold button) -->
         <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <button class="action" style="background:#444;color:#fff" onclick="saveTab()">Save (Hold)</button>
+          <span></span>
           <button class="action submit" style="background:#1f8fff" onclick="finalizeTab()">Finalize / Pay</button>
         </div>
         <div id="tabStatus" class="total" style="font-size:.95em;color:#bbb;margin-top:6px">Mode: Quick Sale</div>
@@ -96,12 +97,15 @@
   </main>
 
 <script>
+/* ---------- DATA & HELPERS ---------- */
 let menuData = [];
 let cart = [];
 const money = n => "£" + (Number(n||0).toFixed(2));
 
+/* ---------- LOAD MENU ---------- */
 async function loadMenu(){
   const res = await fetch("/api/menu");
+  if(!res.ok){ document.getElementById("menu").innerHTML = "<h2>Menu load failed</h2>"; return; }
   menuData = await res.json();
   const menuDiv = document.getElementById("menu");
   menuDiv.innerHTML = "";
@@ -121,7 +125,7 @@ async function loadMenu(){
     menuDiv.appendChild(d);
   });
 
-  // fill admin dropdown
+  // Admin dropdown
   const sel = document.getElementById("adminItem");
   sel.innerHTML="";
   Object.values(menuData).flat().forEach(it=>{
@@ -132,35 +136,48 @@ async function loadMenu(){
   });
 }
 
-function addToCart(it){
-  const found = cart.find(c=>c.id==it.id);
-  if(found){ found.qty++; } else { cart.push({...it, qty:1}); }
-  renderCart();
-}
-
+/* ---------- CART RENDER ---------- */
 function renderCart(){
   const tbl = document.getElementById("cart");
   tbl.innerHTML="";
-  if(cart.length==0){ tbl.innerHTML="<tr><td>No items.</td></tr>"; return; }
-  cart.forEach(c=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.name}</td><td>${c.qty}</td>
-      <td>${money(c.price*c.qty)}</td>
-      <td><button onclick="decItem(${c.id})">-</button>
-      <button onclick="incItem(${c.id})">+</button></td>`;
-    tbl.appendChild(tr);
-  });
+  if(cart.length==0){ tbl.innerHTML="<tr><td>No items.</td></tr>"; }
+  else {
+    cart.forEach(c=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${c.name}</td><td>${c.qty}</td>
+        <td>${money(c.price*c.qty)}</td>
+        <td><button onclick="decItem(${c.id})">-</button>
+        <button onclick="incItem(${c.id})">+</button></td>`;
+      tbl.appendChild(tr);
+    });
+  }
   const t = cart.reduce((s,c)=>s+c.price*c.qty,0);
   document.getElementById("subtotal").textContent=money(t);
   const rec = Number(document.getElementById("received").value||0);
   document.getElementById("change").textContent=money(rec - t);
 }
 
-function incItem(id){ cart.find(c=>c.id==id).qty++; renderCart(); }
-function decItem(id){ const f=cart.find(c=>c.id==id); if(f.qty>1)f.qty--; else cart=cart.filter(c=>c.id!=id); renderCart(); }
-function clearCart(){ cart=[]; renderCart(); }
+/* ---------- CART MUTATORS (auto-save aware) ---------- */
+function addToCart(it){
+  const found = cart.find(c=>c.id==it.id);
+  if(found){ found.qty++; } else { cart.push({...it, qty:1}); }
+  renderCart();
+  markDirty();
+}
+function incItem(id){
+  const f = cart.find(c=>c.id==id); if (f) f.qty++;
+  renderCart(); markDirty();
+}
+function decItem(id){
+  const f = cart.find(c=>c.id==id); if(!f) return;
+  if(f.qty>1) f.qty--; else cart = cart.filter(c=>c.id!=id);
+  renderCart(); markDirty();
+}
+function clearCart(){ cart=[]; renderCart(); markDirty(); }
 function quickCash(n){ document.getElementById("received").value=n; renderCart(); }
+document.getElementById("received").addEventListener("input",renderCart);
 
+/* ---------- QUICK SALE (immediate) ---------- */
 async function submitOrder(){
   if(cart.length==0){ alert("Cart empty"); return; }
   const body = {
@@ -182,18 +199,42 @@ async function submitOrder(){
   }catch(err){ alert("Network error: " + err.message); }
 }
 
+/* ---------- ADMIN PRICE UPDATE ---------- */
 async function updatePrice(){
   const id = document.getElementById("adminItem").value;
   const p = Number(document.getElementById("adminPrice").value);
-  if(!p) return alert("Enter price");
+  if(!(p>=0)) return alert("Enter price");
   const res = await fetch("/api/update_price",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,new_price:p})});
   if(res.ok){ alert("Updated"); loadMenu(); } else alert("Error");
 }
 
-document.getElementById("received").addEventListener("input",renderCart);
+/* ================== TABS (AUTO-SAVE) ================== */
+let currentTab = null;   // { tab_id, spot }
+let dirty = false;       // cart changed and needs saving
+let saveTimer = null;    // debounce timer
 
-// ====== TAB LOGIC ======
-let currentTab = null; // { tab_id, spot }
+function markDirty(){
+  dirty = true;
+  scheduleSave();
+}
+function scheduleSave(){
+  if (!currentTab) return;                 // only auto-save when on a tab
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(autoSaveTab, 800); // save 0.8s after last change
+}
+async function autoSaveTab(){
+  if (!currentTab || !dirty) return;
+  dirty = false;
+  try{
+    await fetch('/api/tab/save', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tab_id: currentTab.tab_id, cart })
+    });
+    refreshTabsBarBadges(); // silent success
+  }catch(_){
+    dirty = true; // will retry on next change
+  }
+}
 
 async function refreshTabsBarBadges(){
   try{
@@ -217,6 +258,8 @@ async function refreshTabsBarBadges(){
 }
 
 async function selectSpot(spot){
+  // Save current tab if dirty before switching
+  if (currentTab && dirty) { await autoSaveTab(); }
   try{
     const r = await fetch('/api/tab/open', {
       method: 'POST', headers: { 'Content-Type':'application/json' },
@@ -226,21 +269,9 @@ async function selectSpot(spot){
     const t = await r.json();
     currentTab = { tab_id: t.tab_id, spot: t.spot };
     cart = Array.isArray(t.cart) ? t.cart : [];
+    dirty = false; // loaded fresh
     renderCart();
     document.getElementById('tabStatus').textContent = `Mode: Tab ${currentTab.spot}`;
-    refreshTabsBarBadges();
-  }catch(e){ alert('Network error: '+e.message); }
-}
-
-async function saveTab(){
-  if(!currentTab){ alert('Pick a tab first'); return; }
-  try{
-    const r = await fetch('/api/tab/save', {
-      method: 'POST', headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ tab_id: currentTab.tab_id, cart })
-    });
-    if(!r.ok){ alert('Save failed'); return; }
-    alert('Saved on hold ✓');
     refreshTabsBarBadges();
   }catch(e){ alert('Network error: '+e.message); }
 }
@@ -248,6 +279,7 @@ async function saveTab(){
 async function finalizeTab(){
   if(!currentTab){ alert('Pick a tab first'); return; }
   if(cart.length===0){ alert('Cart empty'); return; }
+  if (dirty) await autoSaveTab(); // ensure latest changes are saved
   const body = {
     tab_id: currentTab.tab_id,
     payment_method: document.getElementById('payment').value,
@@ -266,23 +298,23 @@ async function finalizeTab(){
   }catch(e){ alert('Network error: '+e.message); }
 }
 
-// Quick Sale mode
-document.getElementById('quickSaleBtn').addEventListener('click', ()=>{
-  currentTab = null;
+/* Quick Sale button: leave tab mode (auto-save if needed) */
+document.getElementById('quickSaleBtn').addEventListener('click', async ()=>{
+  if (currentTab && dirty) { await autoSaveTab(); }
+  currentTab = null; dirty = false;
   document.getElementById('tabStatus').textContent = 'Mode: Quick Sale';
   refreshTabsBarBadges();
 });
 
-// Tab button clicks
+/* Tab button clicks */
 document.getElementById('tabsBar').addEventListener('click', e=>{
   const btn = e.target.closest('.tabbtn'); if(!btn) return;
   selectSpot(btn.dataset.spot);
 });
 
-// refresh badges every 20s
+/* Boot */
 setInterval(refreshTabsBarBadges, 20000);
 refreshTabsBarBadges();
-
 loadMenu();
 </script>
 </body>
