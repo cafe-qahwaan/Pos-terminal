@@ -5,16 +5,16 @@
   <title>Cafe Qahwaan — POS</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body { font-family: sans-serif; margin:0; background:#1e1e2f; color:#f5f5f5; }
-    header { background:#111; padding:12px; display:flex; align-items:center; }
-    header img { height:40px; margin-right:10px; border-radius:8px; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:#1e1e2f; color:#f5f5f5; }
+    header { background:#111; padding:12px; display:flex; align-items:center; gap:10px; }
+    header img { height:40px; border-radius:8px; }
     header h1 { margin:0; font-size:1.4em; color:#ff9933; }
 
     /* Tabs bar */
-    #tabsBar { display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;background:#0e0e15;border-bottom:1px solid #333 }
-    .tabbtn{ background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:8px 10px;cursor:pointer }
+    #tabsBar { display:flex; gap:6px; flex-wrap:wrap; padding:8px 10px; background:#0e0e15; border-bottom:1px solid #333 }
+    .tabbtn{ background:#222; border:1px solid #444; color:#fff; border-radius:6px; padding:8px 10px; cursor:pointer }
     .tabbtn.active{ outline:2px solid #ff9933; }
-    .tabbadge{ margin-left:6px;color:#9fd09f;font-size:.85em }
+    .tabbadge{ margin-left:6px; color:#9fd09f; font-size:.85em }
 
     main { display:flex; flex-wrap:wrap; }
     section { flex:1 1 50%; padding:10px; box-sizing:border-box; }
@@ -56,15 +56,22 @@
 
   <main>
     <section id="menu"><h2>Loading menu…</h2></section>
+
     <section>
       <div class="cart">
         <h2>🛒 Cart</h2>
         <table id="cart"><tr><td>No items yet. Tap buttons on the left to add.</td></tr></table>
         <div class="total">Subtotal: <span id="subtotal">£0.00</span></div>
+
         <label>Payment method
-          <select id="payment"><option>Cash</option><option>Card</option><option>Online</option></select>
+          <select id="payment">
+            <option>Cash</option>
+            <option>Card</option>
+            <option>Online</option>
+          </select>
         </label>
         <label>Staff <input id="staff" placeholder="Name or initials"></label>
+
         <label>Amount received
           <div>
             <button type="button" onclick="quickCash(50)">50</button>
@@ -73,17 +80,21 @@
           </div>
           <input id="received" type="number" step="0.01">
         </label>
+
         <div class="total">Change due: <span id="change">£0.00</span></div>
+
         <div style="display:flex;justify-content:space-between">
           <!-- Quick Sale (immediate) -->
           <button class="action submit" onclick="submitOrder()">Submit order</button>
           <button class="action clear" onclick="clearCart()">Clear cart</button>
         </div>
+
         <!-- Tab finalize (auto-save enabled; no Save/Hold button) -->
         <div style="display:flex;justify-content:space-between;margin-top:6px">
           <span></span>
           <button class="action submit" style="background:#1f8fff" onclick="finalizeTab()">Finalize / Pay</button>
         </div>
+
         <div id="tabStatus" class="total" style="font-size:.95em;color:#bbb;margin-top:6px">Mode: Quick Sale</div>
       </div>
 
@@ -204,26 +215,39 @@ async function updatePrice(){
 let currentTab = null;   // { tab_id, spot }
 let saveTimer = null;    // debounce timer
 
+// Save current tab cart to server (sends tab_id + spot)
 async function saveTabNow(){
   if(!currentTab) return;
   try{
-    await fetch('/api/tab/save', {
+    const res = await fetch('/api/tab/save', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         tab_id: currentTab.tab_id,
-        spot: currentTab.spot,   // IMPORTANT: include spot for UPSERT insert
+        spot: currentTab.spot,   // required for UPSERT insert
         cart
       })
     });
+    const text = await res.text();
+    if(!res.ok){
+      alert('Tab save error: ' + text);
+      return;
+    }
+    // console.log('Saved tab:', text);
     refreshTabsBarBadges();
-  }catch(_){}
+  }catch(e){
+    alert('Network error saving tab: ' + e.message);
+  }
 }
+
+// Debounced follow-up save
 function scheduleSave(){
   if(!currentTab) return;
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(saveTabNow, 300); // 0.3s debounce
 }
+
+// Call after every cart change while in tab mode
 function cartChanged(){ saveTabNow(); scheduleSave(); }
 
 async function refreshTabsBarBadges(){
@@ -253,7 +277,7 @@ function ensureArray(val){
 }
 
 async function selectSpot(spot){
-  // save current tab before switching away
+  // save the current tab before switching away
   await saveTabNow();
   try{
     const r = await fetch('/api/tab/open', {
@@ -292,10 +316,18 @@ async function finalizeTab(){
   }catch(e){ alert('Network error: '+e.message); }
 }
 
-/* Quick Sale button: leave tab mode (save before leaving) */
+/* Quick Sale button: save current tab (if any), then start fresh */
 document.getElementById('quickSaleBtn').addEventListener('click', async ()=>{
-  await saveTabNow();
+  if (currentTab) { await saveTabNow(); }
   currentTab = null;
+  cart = [];            // clear items for a clean quick sale session
+  renderCart();
+
+  // optional: reset inputs
+  document.getElementById('payment').value = 'Cash';
+  document.getElementById('received').value = '';
+  document.getElementById('staff').value = '';
+
   document.getElementById('tabStatus').textContent = 'Mode: Quick Sale';
   refreshTabsBarBadges();
 });
