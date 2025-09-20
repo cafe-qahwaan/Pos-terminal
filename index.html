@@ -1,126 +1,152 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Cafe Qahwaan — POS</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    :root{
-      --bg:#faf3e0;          /* soft beige */
-      --panel:#fff8f0;       /* lighter panel beige */
-      --panel-2:#fffaf4;
-      --ink:#3f2f25;         /* deep coffee text */
-      --muted:#7b675a;       /* muted coffee text */
-      --line:#e6dccb;        /* hairline borders */
-      --brand:#d4a373;       /* caramel accent */
-      --brand-2:#b5835a;     /* deeper caramel */
-      --ok:#4caf50;          /* actions */
-      --danger:#e74c3c;
-      --blue:#1f8fff;
-      --radius:16px;
-      --shadow:0 6px 18px rgba(63,47,37,.08);
-      --shadow-press:0 4px 12px rgba(63,47,37,.12);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--ink);
-      font-family:ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      line-height:1.25;
-    }
+<meta charset="utf-8">
+<title>Cafe Qahwaan — POS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{
+    --bg:#f7f4ed;
+    --panel:#fffdf9;
+    --glass:#ffffffcc;
+    --ink:#2f261f;
+    --muted:#7a6b5f;
+    --line:#eadfcd;
+    --brand:#755b4b;
+    --accent:#6c5ce7;
+    --ok:#36b37e;
+    --danger:#e85c4a;
+    --blue:#1f8fff;
+    --radius:16px;
+    --shadow:0 10px 30px rgba(0,0,0,.06);
+    --shadow-soft:0 6px 18px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  }
 
-    /* Header */
-    header{
-      position:sticky; top:0; z-index:10;
-      display:flex; align-items:center; gap:12px;
-      padding:14px 18px; background:linear-gradient(180deg,#fffaf4, #fff6ec);
-      border-bottom:1px solid var(--line);
-      box-shadow:0 2px 10px rgba(63,47,37,.05);
-    }
-    header img{height:40px; width:40px; border-radius:10px}
-    header h1{margin:0; font-size:1.35rem; font-weight:800; color:var(--ink)}
-    header .sub{color:var(--muted); font-weight:500}
+  /* Header */
+  header{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; gap:12px;
+    padding:14px 18px;
+    background:linear-gradient(180deg,#fffaf2,#fff6ec);
+    border-bottom:1px solid var(--line);
+  }
+  header img{width:36px;height:36px;border-radius:10px}
+  header .title{font-weight:800}
+  header .sub{color:var(--muted);font-size:.95rem}
 
-    /* Tabs bar */
-    #tabsBar{
-      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-      padding:12px 18px; border-bottom:1px solid var(--line); background:#fffdf8;
-    }
-    .tabbtn{
-      appearance:none; border:1px solid var(--line); background:var(--panel);
-      color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer;
-      font-weight:600; box-shadow:var(--shadow);
-    }
-    .tabbtn.active{ outline:2px solid var(--brand); background:#fff; }
-    .tabbadge{ margin-left:6px; color:#246b2b; font-size:.85em }
-    #quickSaleBtn{
-      margin-left:auto; border:1px solid var(--line); background:#fff;
-      color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer;
-      box-shadow:var(--shadow);
-    }
+  /* Tabs */
+  #tabsBar{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:10px 18px; border-bottom:1px solid var(--line); background:#fffdf8;
+  }
+  .tabbtn{
+    appearance:none; border:1px solid var(--line); background:#fff;
+    color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer;
+    font-weight:700; box-shadow:var(--shadow-soft);
+  }
+  .tabbtn.active{ outline:2px solid var(--brand); background:#fff; }
+  .tabbadge{ margin-left:6px; color:#246b2b; font-size:.85em }
+  #quickSaleBtn{
+    margin-left:auto; border:1px solid var(--line); background:#fff;
+    color:var(--ink); padding:8px 12px; border-radius:12px; cursor:pointer;
+    box-shadow:var(--shadow-soft);
+  }
 
-    /* Layout */
-    main{ display:grid; grid-template-columns:1.2fr .9fr; gap:16px; padding:16px; }
-    @media (max-width: 900px){ main{ grid-template-columns:1fr; } }
+  /* Toolbar (search + pills) */
+  .toolbar{
+    display:flex; gap:12px; align-items:center; padding:12px 18px;
+  }
+  .search{
+    flex:1; display:flex; align-items:center; gap:10px;
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px 12px;
+    box-shadow:var(--shadow-soft);
+  }
+  .search input{ flex:1; border:none; outline:none; background:transparent; font-size:1rem; color:var(--ink); }
+  .pills{ display:flex; gap:8px; flex-wrap:wrap }
+  .pill{
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:700;
+  }
+  .pill.active{ background:#4636e61a; color:#453bd2; border-color:#dcd6ff }
 
-    /* Panels */
-    .panel{
-      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-      padding:12px; box-shadow:var(--shadow);
-    }
-    .panel h2{
-      margin:0; font-size:1.05rem; font-weight:800; color:var(--ink);
-      padding:10px 12px; background:var(--panel-2); border:1px solid var(--line);
-      border-radius:12px; cursor:pointer;
-    }
+  /* Layout */
+  main{ display:grid; grid-template-columns:1.35fr .9fr; gap:16px; padding:0 18px 18px; }
+  @media (max-width: 980px){ main{ grid-template-columns:1fr; } }
 
-    /* Category sections */
-    .cat{ margin-bottom:14px; }
-    .grid{
-      display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
-      gap:10px; margin-top:10px;
-    }
-    .item-card{
-      background:#fff; border:1px solid var(--line); border-radius:14px;
-      padding:12px; display:flex; flex-direction:column; justify-content:space-between;
-      min-height:110px; cursor:pointer; transition:transform .05s ease, box-shadow .1s ease;
-      box-shadow:var(--shadow);
-    }
-    .item-card:active{ transform:translateY(1px); box-shadow:var(--shadow-press); }
-    .item-name{ font-weight:800; margin-bottom:6px }
-    .item-price{ color:var(--muted); font-weight:700 }
+  /* Panels */
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px; box-shadow:var(--shadow-soft);
+  }
 
-    /* Cart */
-    .cart{ background:#fff; }
-    .cart h3{ margin:0 0 8px; font-size:1.05rem; }
-    .cart-list{ border-top:1px solid var(--line); margin-top:6px }
-    .row{ display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center;
-          padding:8px 0; border-bottom:1px dashed var(--line); }
-    .row .qtybtn{ border:1px solid var(--line); background:var(--panel); padding:6px 8px; border-radius:8px; }
-    .summary{ display:flex; justify-content:space-between; margin-top:8px; font-weight:800 }
-    .muted{ color:var(--muted) }
-    select,input{ width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--ink) }
+  /* Menu grid */
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:14px; min-height:120px; display:flex; flex-direction:column; justify-content:space-between;
+    cursor:pointer; transition:transform .05s ease, box-shadow .1s ease;
+    box-shadow:var(--shadow-soft);
+  }
+  .card:active{ transform:translateY(1px); box-shadow:var(--shadow); }
+  .card-top{ display:flex; align-items:center; justify-content:space-between; gap:8px }
+  .card-name{ font-weight:800; display:flex; align-items:center; gap:6px }
+  .card-plus{
+    width:28px;height:28px;border-radius:8px;border:1px solid var(--line); background:#fff; font-weight:800;
+    display:grid; place-items:center; box-shadow:var(--shadow-soft);
+  }
+  .card-price{ color:var(--muted); font-weight:700; }
 
-    /* Buttons */
-    .btn{ width:100%; padding:12px 14px; border:none; border-radius:12px; font-weight:800; cursor:pointer; }
-    .btn.ok{ background:var(--ok); color:#fff }
-    .btn.danger{ background:var(--danger); color:#fff }
-    .btn.primary{ background:var(--blue); color:#fff }
-    .btn.outline{ background:#fff; border:1px solid var(--line); color:var(--ink) }
+  /* Cart */
+  .cart{ background:var(--glass); backdrop-filter: blur(4px); }
+  .cart h3{ margin:0 0 10px; font-size:1.05rem }
+  .cart-list{ border:1px dashed var(--line); border-radius:12px; background:#fff; }
+  .row{
+    display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center;
+    padding:10px 12px; border-bottom:1px dashed var(--line);
+  }
+  .row:last-child{ border-bottom:none }
+  .qtychip{
+    display:inline-flex; align-items:center; gap:8px; padding:6px 8px;
+    border:1px solid var(--line); border-radius:999px; background:#fff;
+  }
+  .qtybtn{ width:26px;height:26px;border-radius:8px;border:1px solid var(--line); background:#fff; }
+  .money{ font-weight:800 }
+  .muted{ color:var(--muted) }
 
-    /* Admin */
-    .admin .title{ display:flex; align-items:center; gap:8px; font-weight:800; }
-    .hint{ font-size:.9em; color:var(--muted) }
+  .totals{ margin-top:12px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px }
+  .tot-line{ display:flex; justify-content:space-between; padding:6px 0 }
+  .tot-line strong{ font-size:1.05rem }
 
-    /* Footer bar (mode) */
-    #tabStatus{ color:var(--muted); margin-top:6px; font-weight:700 }
-  </style>
+  .inputs{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px }
+  select,input{ width:100%; padding:12px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--ink) }
+
+  .bar{ position:sticky; bottom:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:12px; background:transparent; }
+  .btn{ width:100%; padding:12px 14px; border:none; border-radius:12px; font-weight:800; cursor:pointer; }
+  .btn.ok{ background:var(--ok); color:#fff }
+  .btn.danger{ background:var(--danger); color:#fff }
+  .btn.primary{ background:var(--blue); color:#fff }
+
+  .admin .title{ font-weight:800; margin-bottom:6px }
+  .hint{ color:var(--muted); font-size:.92rem }
+
+  #tabStatus{ color:var(--muted); margin-top:8px; font-weight:700 }
+</style>
 </head>
 <body>
+
+  <!-- Header -->
   <header>
-    <img src="/logo.png" alt="Cafe Qahwaan">
+    <img src="/logo.png" alt="Cafe">
     <div>
-      <h1>Cafe Qahwaan — POS</h1>
+      <div class="title">Cafe Qahwaan — POS</div>
       <div class="sub">Tap, hold on table, finalize with style</div>
     </div>
   </header>
@@ -136,54 +162,60 @@
     <button class="tabbtn" data-spot="T6">T6</button>
     <button class="tabbtn" data-spot="B1">B1</button>
     <button class="tabbtn" data-spot="B2">B2</button>
-
     <button id="quickSaleBtn">Quick Sale</button>
   </div>
 
+  <!-- Toolbar: Search + category pills -->
+  <div class="toolbar">
+    <div class="search">
+      <span>🔎</span>
+      <input id="search" placeholder="Search menu… (e.g. tea, paratha)">
+    </div>
+    <div id="pillBar" class="pills"></div>
+  </div>
+
   <main>
-    <!-- Menu -->
-    <section id="menu" class="panel">
-      <h2>Loading menu…</h2>
+    <!-- MENU GRID -->
+    <section class="panel">
+      <div id="grid" class="grid"></div>
     </section>
 
-    <!-- Right side -->
+    <!-- RIGHT SIDE -->
     <section style="display:flex; flex-direction:column; gap:16px">
       <div class="panel cart">
         <h3>🧺 Cart</h3>
 
         <div id="cartList" class="cart-list">
-          <div class="muted" style="padding:8px 0">No items yet. Tap cards on the left to add.</div>
+          <div class="muted" style="padding:12px">No items. Tap product cards to add.</div>
         </div>
 
-        <div class="summary">
-          <div>Subtotal</div>
-          <div id="subtotal">£0.00</div>
+        <div class="totals">
+          <div class="tot-line"><span class="muted">Subtotal</span><span id="subtotal" class="money">£0.00</span></div>
+          <div class="tot-line"><span class="muted">Change due</span><span id="change" class="money">£0.00</span></div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px">
+        <div class="inputs">
           <label>Payment method
             <select id="payment">
               <option>Cash</option><option>Card</option><option>Online</option>
             </select>
           </label>
-
           <label>Staff
             <input id="staff" placeholder="Name or initials">
           </label>
 
-          <label>Amount received
-            <div style="display:flex; gap:8px; margin:8px 0">
-              <button type="button" class="btn outline" onclick="quickCash(50)">50</button>
-              <button type="button" class="btn outline" onclick="quickCash(100)">100</button>
-              <button type="button" class="btn outline" onclick="quickCash(500)">500</button>
+          <div>
+            <div class="muted" style="margin-bottom:6px">Amount received</div>
+            <div style="display:flex; gap:8px; margin-bottom:8px">
+              <button type="button" class="btn" style="background:#fff;border:1px solid var(--line)" onclick="quickCash(50)">50</button>
+              <button type="button" class="btn" style="background:#fff;border:1px solid var(--line)" onclick="quickCash(100)">100</button>
+              <button type="button" class="btn" style="background:#fff;border:1px solid var(--line)" onclick="quickCash(500)">500</button>
             </div>
             <input id="received" type="number" step="0.01" placeholder="0.00">
-          </label>
-
-          <div class="summary"><div>Change due</div><div id="change">£0.00</div></div>
+          </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px">
+        <div class="bar">
           <button class="btn danger" onclick="clearCart()">Clear cart</button>
           <button class="btn primary" onclick="finalizeOrQuick()">Finalize / Pay</button>
         </div>
@@ -192,8 +224,8 @@
 
       <div class="panel admin">
         <div class="title">⚙️ Admin — Update Price</div>
-        <div class="hint" style="margin-bottom:8px">Pick an item and set a new price</div>
-        <div style="display:grid; grid-template-columns:1fr; gap:10px">
+        <div class="hint">Pick an item and set a new price.</div>
+        <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px">
           <label>Item <select id="adminItem"></select></label>
           <label>New price <input id="adminPrice" type="number" step="0.01" placeholder="0.00"></label>
           <button class="btn ok" onclick="updatePrice()">Update</button>
@@ -203,196 +235,215 @@
   </main>
 
 <script>
-/* ---------------------- STATE & UTILS ---------------------- */
-let menuData = [];          // { category: [ {id,name,price,sort} ] }
-let cart = [];              // [{id,name,price,qty,sort}]
-const money = n => "£" + (Number(n||0).toFixed(2));
+/* ============ STATE ============ */
+let menuData = {};          // {Category: [{id,name,price,sort}]}
+let flatMenu = [];          // all items flat
+let activeCategory = null;
+let cart = [];
 
-/* ---------------------- MENU RENDER ------------------------ */
+/* category -> emoji */
+const ICONS = {
+  teas: "☕",
+  tea: "☕",
+  parathas: "🫓",
+  paratha: "🫓",
+  eggs: "🍳",
+  channy: "🥣",
+  shakes: "🥤",
+  drinks: "🥤",
+  beverages: "🥤",
+  default: "•"
+};
+
+const money = n => "£"+Number(n||0).toFixed(2);
+
+/* ============ MENU LOADING & UI ============ */
 async function loadMenu(){
   const res = await fetch("/api/menu");
-  const menuDiv = document.getElementById("menu");
-  if(!res.ok){ menuDiv.innerHTML = "<h2>Menu load failed</h2>"; return; }
+  if(!res.ok){ document.getElementById("grid").innerHTML="<div>Menu load failed</div>"; return; }
   menuData = await res.json();
-
-  menuDiv.innerHTML = "";
-  Object.keys(menuData).forEach(cat=>{
-    const section = document.createElement("div"); section.className="cat";
-
-    const head = document.createElement("h2");
-    head.textContent = cat;
-    const grid = document.createElement("div"); grid.className="grid"; grid.style.display="none";
-    head.onclick = ()=>{ grid.style.display = grid.style.display==="grid"?"none":"grid"; };
-    section.appendChild(head);
-    section.appendChild(grid);
-
-    menuData[cat].forEach(it=>{
-      const card = document.createElement("button");
-      card.className = "item-card";
-      card.innerHTML = `<div class="item-name">${it.name}</div>
-                        <div class="item-price">${money(it.price)}</div>`;
-      card.onclick = ()=>addToCart(it);
-      grid.appendChild(card);
-    });
-
-    menuDiv.appendChild(section);
+  flatMenu = Object.values(menuData).flat().sort((a,b)=> (a.sort??999)-(b.sort??999) );
+  const cats = Object.keys(menuData);
+  activeCategory = cats[0] || null;
+  renderPills(cats);
+  renderGrid();
+  fillAdminSelect();
+}
+function renderPills(cats){
+  const bar = document.getElementById("pillBar"); bar.innerHTML="";
+  cats.forEach(cat=>{
+    const key = (cat||"").toLowerCase();
+    const icon = ICONS[key] || ICONS.default;
+    const b = document.createElement("button");
+    b.className = "pill"+(cat===activeCategory?" active":"");
+    b.innerHTML = `<span style="margin-right:6px">${icon}</span>${cat}`;
+    b.onclick = ()=>{ activeCategory=cat; renderGrid(); };
+    bar.appendChild(b);
   });
+}
+function filteredItems(){
+  const q = (document.getElementById("search").value||"").trim().toLowerCase();
+  let list = activeCategory ? (menuData[activeCategory]||[]) : flatMenu;
+  if(q){
+    list = list.filter(it => it.name.toLowerCase().includes(q));
+  }
+  return list;
+}
+function renderGrid(){
+  const grid = document.getElementById("grid"); grid.innerHTML="";
+  const items = filteredItems();
+  const key = (activeCategory||"").toLowerCase();
+  const catIcon = ICONS[key] || ICONS.default;
 
-  // Admin dropdown
-  const sel = document.getElementById("adminItem");
-  sel.innerHTML="";
-  Object.values(menuData).flat().forEach(it=>{
-    const o = document.createElement("option");
-    o.value=it.id; o.textContent=`${it.name} (${money(it.price)})`;
+  items.forEach(it=>{
+    const card = document.createElement("div");
+    card.className="card";
+    card.onclick = ()=>addToCart(it);
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-name"><span>${catIcon}</span>${it.name}</div>
+        <div class="card-plus">+</div>
+      </div>
+      <div class="card-price">${money(it.price)}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+document.getElementById("search").addEventListener("input", renderGrid);
+
+function fillAdminSelect(){
+  const sel = document.getElementById("adminItem"); sel.innerHTML="";
+  flatMenu.forEach(it=>{
+    const o=document.createElement("option"); o.value=it.id; o.textContent=`${it.name} (${money(it.price)})`;
     sel.appendChild(o);
   });
 }
 
-/* ---------------------- CART RENDER ------------------------ */
+/* ============ CART ============ */
 function renderCart(){
   const list = document.getElementById("cartList");
-  list.innerHTML = "";
-  if (cart.length === 0) {
-    list.innerHTML = `<div class="muted" style="padding:8px 0">No items yet. Tap cards on the left to add.</div>`;
-  } else {
+  list.innerHTML="";
+  if(cart.length===0){
+    list.innerHTML = `<div class="muted" style="padding:12px">No items. Tap product cards to add.</div>`;
+  }else{
     cart.forEach(c=>{
-      const row = document.createElement("div");
+      const row=document.createElement("div");
       row.className="row";
-      row.innerHTML = `
+      row.innerHTML=`
         <div><strong>${c.name}</strong></div>
-        <div class="muted">${money(c.price*c.qty)}</div>
-        <div>
-          <button class="qtybtn" onclick="decItem(${c.id})">–</button>
-          <span style="padding:0 8px;font-weight:800">${c.qty}</span>
-          <button class="qtybtn" onclick="incItem(${c.id})">+</button>
+        <div class="money">${money(c.price*c.qty)}</div>
+        <div class="qtychip">
+          <button class="qtybtn" onclick="decItem(${c.id});event.stopPropagation()">–</button>
+          <span style="min-width:20px;text-align:center;font-weight:800">${c.qty}</span>
+          <button class="qtybtn" onclick="incItem(${c.id});event.stopPropagation()">+</button>
         </div>
         <div></div>`;
       list.appendChild(row);
     });
   }
   const t = cart.reduce((s,c)=>s+c.price*c.qty,0);
-  document.getElementById("subtotal").textContent=money(t);
+  document.getElementById("subtotal").textContent = money(t);
   const rec = Number(document.getElementById("received").value||0);
-  document.getElementById("change").textContent=money(rec - t);
+  document.getElementById("change").textContent = money(rec - t);
 }
-
-/* ---------------------- CART MUTATORS ---------------------- */
-function addToCart(it){
-  const f = cart.find(c=>c.id==it.id);
-  if (f) f.qty++; else cart.push({...it, qty:1});
-  renderCart(); cartChanged();
-}
-function incItem(id){ const f=cart.find(c=>c.id==id); if(f) f.qty++; renderCart(); cartChanged(); }
+function addToCart(it){ const f=cart.find(c=>c.id==it.id); if(f) f.qty++; else cart.push({...it,qty:1}); renderCart(); cartChanged(); }
+function incItem(id){ const f=cart.find(c=>c.id==id); if(f){f.qty++; renderCart(); cartChanged();} }
 function decItem(id){ const f=cart.find(c=>c.id==id); if(!f) return; if(f.qty>1) f.qty--; else cart=cart.filter(c=>c.id!=id); renderCart(); cartChanged(); }
 function clearCart(){ cart=[]; renderCart(); cartChanged(); }
 function quickCash(n){ document.getElementById("received").value=n; renderCart(); }
-document.getElementById("received").addEventListener("input",renderCart);
+document.getElementById("received").addEventListener("input", renderCart);
 
-/* ---------------------- ADMIN UPDATE ----------------------- */
+/* ============ ADMIN ============ */
 async function updatePrice(){
   const id = document.getElementById("adminItem").value;
   const p  = Number(document.getElementById("adminPrice").value);
-  if (!(p>=0)) return alert("Enter price");
-  const r = await fetch("/api/update_price", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,new_price:p}) });
-  if (r.ok){ alert("Updated"); loadMenu(); } else alert("Error: " + await r.text());
+  if(!(p>=0)) return alert("Enter price");
+  const r = await fetch("/api/update_price", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({id,new_price:p}) });
+  if(r.ok){ alert("Updated"); loadMenu(); } else alert("Error: "+await r.text());
 }
 
-/* ---------------------- UNIFIED PAY ------------------------ */
+/* ============ PAY / FINALIZE ============ */
 async function finalizeOrQuick(){
-  if (cart.length===0) return alert("Cart empty");
+  if(cart.length===0) return alert("Cart empty");
   const staff = document.getElementById("staff").value.trim();
-  if (!staff) return alert("Enter staff");
+  if(!staff) return alert("Enter staff");
   const payment_method = document.getElementById("payment").value;
-  const amount_received = Number(document.getElementById("received").value || 0);
+  const amount_received = Number(document.getElementById("received").value||0);
 
-  if (currentTab){
+  if(currentTab){
     await saveTabNow();
-    const r = await fetch('/api/tab/finalize', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ tab_id: currentTab.tab_id, payment_method, staff, amount_received })
-    });
-    const txt = await r.text(); if(!r.ok){ alert('Finalize error: '+txt); return; }
+    const r=await fetch("/api/tab/finalize",{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tab_id: currentTab.tab_id, payment_method, staff, amount_received }) });
+    const txt=await r.text(); if(!r.ok){ alert("Finalize error: "+txt); return; }
     document.open(); document.write(txt); document.close();
-  } else {
-    const r = await fetch('/api/sale', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ cart, payment_method, staff, amount_received })
-    });
-    const txt = await r.text(); if(!r.ok){ alert('Sale error: '+txt); return; }
+  }else{
+    const r=await fetch("/api/sale",{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ cart, payment_method, staff, amount_received }) });
+    const txt=await r.text(); if(!r.ok){ alert("Sale error: "+txt); return; }
     document.open(); document.write(txt); document.close();
   }
 }
 
-/* ---------------------- TABS (auto-save) ------------------- */
-let currentTab = null;   // { tab_id, spot }
-let saveTimer = null;
+/* ============ TABS (auto-save) ============ */
+let currentTab=null; let saveTimer=null;
 
 async function saveTabNow(){
   if(!currentTab) return;
   try{
-    const res = await fetch('/api/tab/save', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ tab_id: currentTab.tab_id, spot: currentTab.spot, cart })
-    });
-    const text = await res.text();
-    if(!res.ok){ alert('Tab save error: ' + text); return; }
+    const res=await fetch("/api/tab/save",{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tab_id: currentTab.tab_id, spot: currentTab.spot, cart }) });
+    const txt=await res.text(); if(!res.ok){ alert("Tab save error: "+txt); return; }
     refreshTabsBarBadges();
-  }catch(e){ alert('Network error saving tab: ' + e.message); }
+  }catch(e){ alert("Network error: "+e.message); }
 }
 function scheduleSave(){ if(!currentTab) return; if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(saveTabNow,300); }
 function cartChanged(){ saveTabNow(); scheduleSave(); }
 
 async function refreshTabsBarBadges(){
   try{
-    const r = await fetch('/api/tabs'); if(!r.ok) return;
-    const list = await r.json(); const bySpot = new Map(list.map(t=>[t.spot,t]));
-    document.querySelectorAll('.tabbtn').forEach(btn=>{
-      const spot = btn.dataset.spot;
-      btn.classList.toggle('active', currentTab && currentTab.spot===spot);
-      const old = btn.querySelector('.tabbadge'); if(old) old.remove();
-      const t = bySpot.get(spot);
+    const r=await fetch("/api/tabs"); if(!r.ok) return; const list=await r.json();
+    const bySpot=new Map(list.map(t=>[t.spot,t]));
+    document.querySelectorAll(".tabbtn").forEach(btn=>{
+      const spot=btn.dataset.spot;
+      btn.classList.toggle("active", currentTab && currentTab.spot===spot);
+      const old=btn.querySelector(".tabbadge"); if(old) old.remove();
+      const t=bySpot.get(spot);
       if(t && t.item_count>0){
-        const b=document.createElement('span'); b.className='tabbadge';
-        b.textContent=`${t.item_count} • £${(t.subtotal).toFixed(2)}`;
-        btn.appendChild(b);
+        const b=document.createElement("span"); b.className="tabbadge"; b.textContent=`${t.item_count} • £${(t.subtotal).toFixed(2)}`; btn.appendChild(b);
       }
     });
   }catch(_){}
 }
-function ensureArray(v){ if(Array.isArray(v))return v; if(v==null)return[]; try{const p=typeof v==="string"?JSON.parse(v):v; return Array.isArray(p)?p:[]}catch{return[]} }
-
+function ensureArray(v){ if(Array.isArray(v)) return v; if(v==null) return []; try{const p=typeof v==="string"?JSON.parse(v):v; return Array.isArray(p)?p:[]}catch{return[]} }
 async function selectSpot(spot){
   await saveTabNow();
   try{
-    const r = await fetch('/api/tab/open', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ spot }) });
-    if(!r.ok){ alert('Tab open error'); return; }
-    const t = await r.json();
-    currentTab = { tab_id: t.tab_id, spot: t.spot };
-    cart = ensureArray(t.cart);
+    const r=await fetch("/api/tab/open",{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ spot }) });
+    if(!r.ok){ alert("Tab open error"); return; }
+    const t=await r.json();
+    currentTab={ tab_id:t.tab_id, spot:t.spot };
+    cart=ensureArray(t.cart);
     renderCart();
-    document.getElementById('tabStatus').textContent = `Mode: Tab ${currentTab.spot}`;
+    document.getElementById("tabStatus").textContent=`Mode: Tab ${currentTab.spot}`;
     refreshTabsBarBadges();
-  }catch(e){ alert('Network error: '+e.message); }
+  }catch(e){ alert("Network error: "+e.message); }
 }
 
-/* Quick Sale: save current tab (if any) then clear for a fresh sale */
-document.getElementById('quickSaleBtn').addEventListener('click', async ()=>{
+/* Quick Sale mode */
+document.getElementById("quickSaleBtn").addEventListener("click", async ()=>{
   if(currentTab) await saveTabNow();
-  currentTab = null; cart=[]; renderCart();
-  document.getElementById('payment').value='Cash';
-  document.getElementById('received').value='';
-  document.getElementById('staff').value='';
-  document.getElementById('tabStatus').textContent='Mode: Quick Sale';
+  currentTab=null; cart=[]; renderCart();
+  document.getElementById("payment").value="Cash";
+  document.getElementById("received").value="";
+  document.getElementById("staff").value="";
+  document.getElementById("tabStatus").textContent="Mode: Quick Sale";
   refreshTabsBarBadges();
 });
 
-/* Tab button clicks */
-document.getElementById('tabsBar').addEventListener('click', e=>{
-  const btn=e.target.closest('.tabbtn'); if(!btn) return; selectSpot(btn.dataset.spot);
+/* Tab clicks */
+document.getElementById("tabsBar").addEventListener("click", e=>{
+  const b=e.target.closest(".tabbtn"); if(!b) return; selectSpot(b.dataset.spot);
 });
 
-/* ---------------------- BOOT ------------------------------- */
-setInterval(refreshTabsBarBadges, 20000);
+/* ============ BOOT ============ */
+setInterval(refreshTabsBarBadges,20000);
 refreshTabsBarBadges();
 loadMenu();
 renderCart();
