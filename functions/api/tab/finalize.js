@@ -39,17 +39,17 @@ export async function onRequestPost({ request, env }) {
   const cart = toArray(tab.cart);
   if (!cart.length) return new Response("Cart is empty", { status: 400 });
 
-  const subtotal = cart.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 1), 0);
-  const item_count = cart.reduce((s, i) => s + Number(i.qty || 0), 0);
-  const received = Number(amount_received || 0);
+  const subtotal   = cart.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 1), 0);
+  const item_count = cart.reduce((s, i) => s + Number(i.qty  || 0), 0);
+  const received   = Number(amount_received || 0);
   const change_due = Math.max(0, received - subtotal);
 
-  // 4) Insert order (generate UUID; match your schema)
+  // 4) Insert order
   const orderRow = {
-    id: crypto.randomUUID(),    // avoid NOT NULL id issues
+    id: crypto.randomUUID(),
     cart,
     subtotal,
-    item_count,                 // <-- important (your table requires it)
+    item_count,
     payment_method,
     staff,
     amount_received: received,
@@ -68,10 +68,9 @@ export async function onRequestPost({ request, env }) {
     body: JSON.stringify([orderRow])
   });
   if (!orderRes.ok) return new Response(await orderRes.text(), { status: 500 });
-
   const [savedOrder] = await orderRes.json();
 
-  // 5) Close the tab
+  // 5) Close the tab (status only, no closed_at)
   const closeUrl = `${env.SUPABASE_URL}/rest/v1/tabs?id=eq.${encodeURIComponent(tab_id)}`;
   const closeRes = await fetch(closeUrl, {
     method: "PATCH",
@@ -81,7 +80,7 @@ export async function onRequestPost({ request, env }) {
       "Content-Type": "application/json",
       Prefer: "return=minimal"
     },
-    body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString() })
+    body: JSON.stringify({ status: "closed" })
   });
   if (!closeRes.ok && closeRes.status !== 204) {
     return new Response("Order saved but closing tab failed: " + (await closeRes.text()), { status: 500 });
