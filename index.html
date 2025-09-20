@@ -10,7 +10,7 @@
     header img { height:40px; margin-right:10px; border-radius:8px; }
     header h1 { margin:0; font-size:1.4em; color:#ff9933; }
 
-    /* Tab bar */
+    /* Tabs bar */
     #tabsBar { display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;background:#0e0e15;border-bottom:1px solid #333 }
     .tabbtn{ background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:8px 10px;cursor:pointer }
     .tabbtn.active{ outline:2px solid #ff9933; }
@@ -79,7 +79,7 @@
           <button class="action submit" onclick="submitOrder()">Submit order</button>
           <button class="action clear" onclick="clearCart()">Clear cart</button>
         </div>
-        <!-- Tab finalize (auto-save is enabled; no Save/Hold button) -->
+        <!-- Tab finalize (auto-save enabled; no Save/Hold button) -->
         <div style="display:flex;justify-content:space-between;margin-top:6px">
           <span></span>
           <button class="action submit" style="background:#1f8fff" onclick="finalizeTab()">Finalize / Pay</button>
@@ -157,23 +157,15 @@ function renderCart(){
   document.getElementById("change").textContent=money(rec - t);
 }
 
-/* ---------- CART MUTATORS (auto-save aware) ---------- */
+/* ---------- CART MUTATORS ---------- */
 function addToCart(it){
   const found = cart.find(c=>c.id==it.id);
   if(found){ found.qty++; } else { cart.push({...it, qty:1}); }
-  renderCart();
-  markDirty();
+  renderCart(); cartChanged();
 }
-function incItem(id){
-  const f = cart.find(c=>c.id==id); if (f) f.qty++;
-  renderCart(); markDirty();
-}
-function decItem(id){
-  const f = cart.find(c=>c.id==id); if(!f) return;
-  if(f.qty>1) f.qty--; else cart = cart.filter(c=>c.id!=id);
-  renderCart(); markDirty();
-}
-function clearCart(){ cart=[]; renderCart(); markDirty(); }
+function incItem(id){ const f = cart.find(c=>c.id==id); if(f) f.qty++; renderCart(); cartChanged(); }
+function decItem(id){ const f = cart.find(c=>c.id==id); if(!f) return; if(f.qty>1) f.qty--; else cart = cart.filter(c=>c.id!=id); renderCart(); cartChanged(); }
+function clearCart(){ cart=[]; renderCart(); cartChanged(); }
 function quickCash(n){ document.getElementById("received").value=n; renderCart(); }
 document.getElementById("received").addEventListener("input",renderCart);
 
@@ -208,33 +200,31 @@ async function updatePrice(){
   if(res.ok){ alert("Updated"); loadMenu(); } else alert("Error");
 }
 
-/* ================== TABS (AUTO-SAVE) ================== */
+/* ================== TABS (AUTO-SAVE: immediate + debounced) ================== */
 let currentTab = null;   // { tab_id, spot }
-let dirty = false;       // cart changed and needs saving
 let saveTimer = null;    // debounce timer
 
-function markDirty(){
-  dirty = true;
-  scheduleSave();
-}
-function scheduleSave(){
-  if (!currentTab) return;                 // only auto-save when on a tab
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(autoSaveTab, 800); // save 0.8s after last change
-}
-async function autoSaveTab(){
-  if (!currentTab || !dirty) return;
-  dirty = false;
+async function saveTabNow(){
+  if(!currentTab) return;
   try{
     await fetch('/api/tab/save', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ tab_id: currentTab.tab_id, cart })
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        tab_id: currentTab.tab_id,
+        spot: currentTab.spot,   // IMPORTANT: include spot for UPSERT insert
+        cart
+      })
     });
-    refreshTabsBarBadges(); // silent success
-  }catch(_){
-    dirty = true; // will retry on next change
-  }
+    refreshTabsBarBadges();
+  }catch(_){}
 }
+function scheduleSave(){
+  if(!currentTab) return;
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveTabNow, 300); // 0.3s debounce
+}
+function cartChanged(){ saveTabNow(); scheduleSave(); }
 
 async function refreshTabsBarBadges(){
   try{
@@ -256,19 +246,15 @@ async function refreshTabsBarBadges(){
     });
   }catch(_){}
 }
-
 function ensureArray(val){
   if (Array.isArray(val)) return val;
   if (val == null) return [];
-  try {
-    const parsed = typeof val === "string" ? JSON.parse(val) : val;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
+  try { const p = typeof val==="string" ? JSON.parse(val) : val; return Array.isArray(p)?p:[]; } catch { return []; }
 }
 
 async function selectSpot(spot){
-  // Save current tab if dirty before switching
-  if (currentTab && dirty) { await autoSaveTab(); }
+  // save current tab before switching away
+  await saveTabNow();
   try{
     const r = await fetch('/api/tab/open', {
       method: 'POST', headers: { 'Content-Type':'application/json' },
@@ -278,7 +264,6 @@ async function selectSpot(spot){
     const t = await r.json();
     currentTab = { tab_id: t.tab_id, spot: t.spot };
     cart = ensureArray(t.cart);
-    dirty = false; // loaded fresh
     renderCart();
     document.getElementById('tabStatus').textContent = `Mode: Tab ${currentTab.spot}`;
     refreshTabsBarBadges();
@@ -288,7 +273,7 @@ async function selectSpot(spot){
 async function finalizeTab(){
   if(!currentTab){ alert('Pick a tab first'); return; }
   if(cart.length===0){ alert('Cart empty'); return; }
-  if (dirty) await autoSaveTab(); // ensure latest changes are saved
+  await saveTabNow(); // ensure last changes persisted
   const body = {
     tab_id: currentTab.tab_id,
     payment_method: document.getElementById('payment').value,
@@ -307,10 +292,10 @@ async function finalizeTab(){
   }catch(e){ alert('Network error: '+e.message); }
 }
 
-/* Quick Sale button: leave tab mode (auto-save if needed) */
+/* Quick Sale button: leave tab mode (save before leaving) */
 document.getElementById('quickSaleBtn').addEventListener('click', async ()=>{
-  if (currentTab && dirty) { await autoSaveTab(); }
-  currentTab = null; dirty = false;
+  await saveTabNow();
+  currentTab = null;
   document.getElementById('tabStatus').textContent = 'Mode: Quick Sale';
   refreshTabsBarBadges();
 });
