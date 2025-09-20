@@ -5,39 +5,129 @@
   <title>Cafe Qahwaan — POS</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:#1e1e2f; color:#f5f5f5; }
-    header { background:#111; padding:12px; display:flex; align-items:center; gap:10px; }
-    header img { height:40px; border-radius:8px; }
-    header h1 { margin:0; font-size:1.4em; color:#ff9933; }
-    #tabsBar { display:flex; gap:6px; flex-wrap:wrap; padding:8px 10px; background:#0e0e15; border-bottom:1px solid #333 }
-    .tabbtn{ background:#222; border:1px solid #444; color:#fff; border-radius:6px; padding:8px 10px; cursor:pointer }
-    .tabbtn.active{ outline:2px solid #ff9933; }
-    .tabbadge{ margin-left:6px; color:#9fd09f; font-size:.85em }
-    main { display:flex; flex-wrap:wrap; }
-    section { flex:1 1 50%; padding:10px; box-sizing:border-box; }
-    h2 { margin-top:0; cursor:pointer; background:#333; padding:6px; border-radius:6px; }
-    .items { display:none; margin-top:6px; }
-    .items button { display:block; width:100%; padding:10px; margin:3px 0; background:#444; color:white; border:none; border-radius:6px; font-size:1em; }
-    .items button:hover { background:#666; }
-    .cart { background:#222; padding:10px; border-radius:8px; }
-    .cart table { width:100%; font-size:0.9em; }
-    .cart td, .cart th { padding:4px; }
-    .total { font-size:1.2em; margin-top:10px; }
-    input, select { padding:6px; margin:4px 0; width:100%; border-radius:4px; border:1px solid #555; background:#333; color:white; }
-    button.action { padding:10px; margin-top:6px; width:48%; font-size:1em; border:none; border-radius:6px; }
-    .submit { background:#28a745; color:white; }
-    .clear { background:#dc3545; color:white; }
-    .admin { margin-top:20px; background:#111; padding:10px; border-radius:8px; }
+    :root{
+      --bg:#faf3e0;          /* soft beige */
+      --panel:#fff8f0;       /* lighter panel beige */
+      --panel-2:#fffaf4;
+      --ink:#3f2f25;         /* deep coffee text */
+      --muted:#7b675a;       /* muted coffee text */
+      --line:#e6dccb;        /* hairline borders */
+      --brand:#d4a373;       /* caramel accent */
+      --brand-2:#b5835a;     /* deeper caramel */
+      --ok:#4caf50;          /* actions */
+      --danger:#e74c3c;
+      --blue:#1f8fff;
+      --radius:16px;
+      --shadow:0 6px 18px rgba(63,47,37,.08);
+      --shadow-press:0 4px 12px rgba(63,47,37,.12);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height:1.25;
+    }
+
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; gap:12px;
+      padding:14px 18px; background:linear-gradient(180deg,#fffaf4, #fff6ec);
+      border-bottom:1px solid var(--line);
+      box-shadow:0 2px 10px rgba(63,47,37,.05);
+    }
+    header img{height:40px; width:40px; border-radius:10px}
+    header h1{margin:0; font-size:1.35rem; font-weight:800; color:var(--ink)}
+    header .sub{color:var(--muted); font-weight:500}
+
+    /* Tabs bar */
+    #tabsBar{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+      padding:12px 18px; border-bottom:1px solid var(--line); background:#fffdf8;
+    }
+    .tabbtn{
+      appearance:none; border:1px solid var(--line); background:var(--panel);
+      color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer;
+      font-weight:600; box-shadow:var(--shadow);
+    }
+    .tabbtn.active{ outline:2px solid var(--brand); background:#fff; }
+    .tabbadge{ margin-left:6px; color:#246b2b; font-size:.85em }
+    #quickSaleBtn{
+      margin-left:auto; border:1px solid var(--line); background:#fff;
+      color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer;
+      box-shadow:var(--shadow);
+    }
+
+    /* Layout */
+    main{ display:grid; grid-template-columns:1.2fr .9fr; gap:16px; padding:16px; }
+    @media (max-width: 900px){ main{ grid-template-columns:1fr; } }
+
+    /* Panels */
+    .panel{
+      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+      padding:12px; box-shadow:var(--shadow);
+    }
+    .panel h2{
+      margin:0; font-size:1.05rem; font-weight:800; color:var(--ink);
+      padding:10px 12px; background:var(--panel-2); border:1px solid var(--line);
+      border-radius:12px; cursor:pointer;
+    }
+
+    /* Category sections */
+    .cat{ margin-bottom:14px; }
+    .grid{
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
+      gap:10px; margin-top:10px;
+    }
+    .item-card{
+      background:#fff; border:1px solid var(--line); border-radius:14px;
+      padding:12px; display:flex; flex-direction:column; justify-content:space-between;
+      min-height:110px; cursor:pointer; transition:transform .05s ease, box-shadow .1s ease;
+      box-shadow:var(--shadow);
+    }
+    .item-card:active{ transform:translateY(1px); box-shadow:var(--shadow-press); }
+    .item-name{ font-weight:800; margin-bottom:6px }
+    .item-price{ color:var(--muted); font-weight:700 }
+
+    /* Cart */
+    .cart{ background:#fff; }
+    .cart h3{ margin:0 0 8px; font-size:1.05rem; }
+    .cart-list{ border-top:1px solid var(--line); margin-top:6px }
+    .row{ display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center;
+          padding:8px 0; border-bottom:1px dashed var(--line); }
+    .row .qtybtn{ border:1px solid var(--line); background:var(--panel); padding:6px 8px; border-radius:8px; }
+    .summary{ display:flex; justify-content:space-between; margin-top:8px; font-weight:800 }
+    .muted{ color:var(--muted) }
+    select,input{ width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--ink) }
+
+    /* Buttons */
+    .btn{ width:100%; padding:12px 14px; border:none; border-radius:12px; font-weight:800; cursor:pointer; }
+    .btn.ok{ background:var(--ok); color:#fff }
+    .btn.danger{ background:var(--danger); color:#fff }
+    .btn.primary{ background:var(--blue); color:#fff }
+    .btn.outline{ background:#fff; border:1px solid var(--line); color:var(--ink) }
+
+    /* Admin */
+    .admin .title{ display:flex; align-items:center; gap:8px; font-weight:800; }
+    .hint{ font-size:.9em; color:var(--muted) }
+
+    /* Footer bar (mode) */
+    #tabStatus{ color:var(--muted); margin-top:6px; font-weight:700 }
   </style>
 </head>
 <body>
   <header>
     <img src="/logo.png" alt="Cafe Qahwaan">
-    <h1>Cafe Qahwaan — POS</h1>
+    <div>
+      <h1>Cafe Qahwaan — POS</h1>
+      <div class="sub">Tap, hold on table, finalize with style</div>
+    </div>
   </header>
 
+  <!-- Tabs -->
   <div id="tabsBar">
-    <strong style="margin-right:6px;color:#ff9933">Tabs:</strong>
+    <strong style="color:var(--muted)">Tabs:</strong>
     <button class="tabbtn" data-spot="T1">T1</button>
     <button class="tabbtn" data-spot="T2">T2</button>
     <button class="tabbtn" data-spot="T3">T3</button>
@@ -46,100 +136,138 @@
     <button class="tabbtn" data-spot="T6">T6</button>
     <button class="tabbtn" data-spot="B1">B1</button>
     <button class="tabbtn" data-spot="B2">B2</button>
-    <span style="flex:1"></span>
-    <button id="quickSaleBtn" style="background:#2b2b2b;color:#fff;border:1px solid #444;border-radius:6px;padding:8px 10px">Quick Sale</button>
+
+    <button id="quickSaleBtn">Quick Sale</button>
   </div>
 
   <main>
-    <section id="menu"><h2>Loading menu…</h2></section>
+    <!-- Menu -->
+    <section id="menu" class="panel">
+      <h2>Loading menu…</h2>
+    </section>
 
-    <section>
-      <div class="cart">
-        <h2>🛒 Cart</h2>
-        <table id="cart"><tr><td>No items yet. Tap buttons on the left to add.</td></tr></table>
-        <div class="total">Subtotal: <span id="subtotal">£0.00</span></div>
+    <!-- Right side -->
+    <section style="display:flex; flex-direction:column; gap:16px">
+      <div class="panel cart">
+        <h3>🧺 Cart</h3>
 
-        <label>Payment method
-          <select id="payment"><option>Cash</option><option>Card</option><option>Online</option></select>
-        </label>
-        <label>Staff <input id="staff" placeholder="Name or initials"></label>
-
-        <label>Amount received
-          <div>
-            <button type="button" onclick="quickCash(50)">50</button>
-            <button type="button" onclick="quickCash(100)">100</button>
-            <button type="button" onclick="quickCash(500)">500</button>
-          </div>
-          <input id="received" type="number" step="0.01">
-        </label>
-
-        <div class="total">Change due: <span id="change">£0.00</span></div>
-
-        <div style="display:flex;justify-content:space-between">
-          <button class="action clear" onclick="clearCart()">Clear cart</button>
-          <button class="action submit" style="background:#1f8fff" onclick="finalizeOrQuick()">Finalize / Pay</button>
+        <div id="cartList" class="cart-list">
+          <div class="muted" style="padding:8px 0">No items yet. Tap cards on the left to add.</div>
         </div>
 
-        <div id="tabStatus" class="total" style="font-size:.95em;color:#bbb;margin-top:6px">Mode: Quick Sale</div>
+        <div class="summary">
+          <div>Subtotal</div>
+          <div id="subtotal">£0.00</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px">
+          <label>Payment method
+            <select id="payment">
+              <option>Cash</option><option>Card</option><option>Online</option>
+            </select>
+          </label>
+
+          <label>Staff
+            <input id="staff" placeholder="Name or initials">
+          </label>
+
+          <label>Amount received
+            <div style="display:flex; gap:8px; margin:8px 0">
+              <button type="button" class="btn outline" onclick="quickCash(50)">50</button>
+              <button type="button" class="btn outline" onclick="quickCash(100)">100</button>
+              <button type="button" class="btn outline" onclick="quickCash(500)">500</button>
+            </div>
+            <input id="received" type="number" step="0.01" placeholder="0.00">
+          </label>
+
+          <div class="summary"><div>Change due</div><div id="change">£0.00</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px">
+          <button class="btn danger" onclick="clearCart()">Clear cart</button>
+          <button class="btn primary" onclick="finalizeOrQuick()">Finalize / Pay</button>
+        </div>
+        <div id="tabStatus">Mode: Quick Sale</div>
       </div>
 
-      <div class="admin">
-        <h2>⚙️ Admin — Update Price</h2>
-        <label>Item <select id="adminItem"></select></label>
-        <label>New price <input id="adminPrice" type="number" step="0.01"></label>
-        <button class="action submit" onclick="updatePrice()">Update</button>
+      <div class="panel admin">
+        <div class="title">⚙️ Admin — Update Price</div>
+        <div class="hint" style="margin-bottom:8px">Pick an item and set a new price</div>
+        <div style="display:grid; grid-template-columns:1fr; gap:10px">
+          <label>Item <select id="adminItem"></select></label>
+          <label>New price <input id="adminPrice" type="number" step="0.01" placeholder="0.00"></label>
+          <button class="btn ok" onclick="updatePrice()">Update</button>
+        </div>
       </div>
     </section>
   </main>
 
 <script>
-let menuData = [];
-let cart = [];
+/* ---------------------- STATE & UTILS ---------------------- */
+let menuData = [];          // { category: [ {id,name,price,sort} ] }
+let cart = [];              // [{id,name,price,qty,sort}]
 const money = n => "£" + (Number(n||0).toFixed(2));
 
+/* ---------------------- MENU RENDER ------------------------ */
 async function loadMenu(){
   const res = await fetch("/api/menu");
-  if(!res.ok){ document.getElementById("menu").innerHTML = "<h2>Menu load failed</h2>"; return; }
-  menuData = await res.json();
   const menuDiv = document.getElementById("menu");
+  if(!res.ok){ menuDiv.innerHTML = "<h2>Menu load failed</h2>"; return; }
+  menuData = await res.json();
+
   menuDiv.innerHTML = "";
   Object.keys(menuData).forEach(cat=>{
-    const h = document.createElement("h2");
-    h.textContent = cat;
-    h.onclick = () => { d.style.display = (d.style.display=="block"?"none":"block"); };
-    menuDiv.appendChild(h);
-    const d = document.createElement("div");
-    d.className="items";
+    const section = document.createElement("div"); section.className="cat";
+
+    const head = document.createElement("h2");
+    head.textContent = cat;
+    const grid = document.createElement("div"); grid.className="grid"; grid.style.display="none";
+    head.onclick = ()=>{ grid.style.display = grid.style.display==="grid"?"none":"grid"; };
+    section.appendChild(head);
+    section.appendChild(grid);
+
     menuData[cat].forEach(it=>{
-      const b = document.createElement("button");
-      b.textContent = it.name+" – "+money(it.price);
-      b.onclick = ()=>addToCart(it);
-      d.appendChild(b);
+      const card = document.createElement("button");
+      card.className = "item-card";
+      card.innerHTML = `<div class="item-name">${it.name}</div>
+                        <div class="item-price">${money(it.price)}</div>`;
+      card.onclick = ()=>addToCart(it);
+      grid.appendChild(card);
     });
-    menuDiv.appendChild(d);
+
+    menuDiv.appendChild(section);
   });
+
+  // Admin dropdown
   const sel = document.getElementById("adminItem");
   sel.innerHTML="";
   Object.values(menuData).flat().forEach(it=>{
     const o = document.createElement("option");
-    o.value=it.id;
-    o.textContent=it.name+" ("+money(it.price)+")";
+    o.value=it.id; o.textContent=`${it.name} (${money(it.price)})`;
     sel.appendChild(o);
   });
 }
 
+/* ---------------------- CART RENDER ------------------------ */
 function renderCart(){
-  const tbl = document.getElementById("cart");
-  tbl.innerHTML="";
-  if(cart.length==0){ tbl.innerHTML="<tr><td>No items.</td></tr>"; }
-  else {
+  const list = document.getElementById("cartList");
+  list.innerHTML = "";
+  if (cart.length === 0) {
+    list.innerHTML = `<div class="muted" style="padding:8px 0">No items yet. Tap cards on the left to add.</div>`;
+  } else {
     cart.forEach(c=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${c.name}</td><td>${c.qty}</td>
-        <td>${money(c.price*c.qty)}</td>
-        <td><button onclick="decItem(${c.id})">-</button>
-        <button onclick="incItem(${c.id})">+</button></td>`;
-      tbl.appendChild(tr);
+      const row = document.createElement("div");
+      row.className="row";
+      row.innerHTML = `
+        <div><strong>${c.name}</strong></div>
+        <div class="muted">${money(c.price*c.qty)}</div>
+        <div>
+          <button class="qtybtn" onclick="decItem(${c.id})">–</button>
+          <span style="padding:0 8px;font-weight:800">${c.qty}</span>
+          <button class="qtybtn" onclick="incItem(${c.id})">+</button>
+        </div>
+        <div></div>`;
+      list.appendChild(row);
     });
   }
   const t = cart.reduce((s,c)=>s+c.price*c.qty,0);
@@ -148,43 +276,54 @@ function renderCart(){
   document.getElementById("change").textContent=money(rec - t);
 }
 
-function addToCart(it){ const f=cart.find(c=>c.id==it.id); if(f){f.qty++;} else {cart.push({...it,qty:1});} renderCart(); cartChanged(); }
+/* ---------------------- CART MUTATORS ---------------------- */
+function addToCart(it){
+  const f = cart.find(c=>c.id==it.id);
+  if (f) f.qty++; else cart.push({...it, qty:1});
+  renderCart(); cartChanged();
+}
 function incItem(id){ const f=cart.find(c=>c.id==id); if(f) f.qty++; renderCart(); cartChanged(); }
 function decItem(id){ const f=cart.find(c=>c.id==id); if(!f) return; if(f.qty>1) f.qty--; else cart=cart.filter(c=>c.id!=id); renderCart(); cartChanged(); }
 function clearCart(){ cart=[]; renderCart(); cartChanged(); }
 function quickCash(n){ document.getElementById("received").value=n; renderCart(); }
 document.getElementById("received").addEventListener("input",renderCart);
 
-/* ---------- Unified pay button ---------- */
-async function finalizeOrQuick(){
-  if(cart.length===0){ alert('Cart empty'); return; }
-  const staff = document.getElementById('staff').value.trim();
-  if(!staff){ alert('Enter staff'); return; }
-  const payment_method = document.getElementById('payment').value;
-  const amount_received = Number(document.getElementById('received').value || 0);
+/* ---------------------- ADMIN UPDATE ----------------------- */
+async function updatePrice(){
+  const id = document.getElementById("adminItem").value;
+  const p  = Number(document.getElementById("adminPrice").value);
+  if (!(p>=0)) return alert("Enter price");
+  const r = await fetch("/api/update_price", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id,new_price:p}) });
+  if (r.ok){ alert("Updated"); loadMenu(); } else alert("Error: " + await r.text());
+}
 
-  if(currentTab){
-    await saveTabNow(); // make sure tab is up to date
+/* ---------------------- UNIFIED PAY ------------------------ */
+async function finalizeOrQuick(){
+  if (cart.length===0) return alert("Cart empty");
+  const staff = document.getElementById("staff").value.trim();
+  if (!staff) return alert("Enter staff");
+  const payment_method = document.getElementById("payment").value;
+  const amount_received = Number(document.getElementById("received").value || 0);
+
+  if (currentTab){
+    await saveTabNow();
     const r = await fetch('/api/tab/finalize', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ tab_id: currentTab.tab_id, payment_method, staff, amount_received })
     });
-    const txt = await r.text();
-    if(!r.ok){ alert('Finalize error: ' + txt); return; }
+    const txt = await r.text(); if(!r.ok){ alert('Finalize error: '+txt); return; }
     document.open(); document.write(txt); document.close();
-  }else{
-    // Quick Sale path uses /api/sale
+  } else {
     const r = await fetch('/api/sale', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ cart, payment_method, staff, amount_received })
     });
-    const txt = await r.text();
-    if(!r.ok){ alert('Sale error: ' + txt); return; }
+    const txt = await r.text(); if(!r.ok){ alert('Sale error: '+txt); return; }
     document.open(); document.write(txt); document.close();
   }
 }
 
-/* ================== Tabs (auto-save) ================== */
+/* ---------------------- TABS (auto-save) ------------------- */
 let currentTab = null;   // { tab_id, spot }
 let saveTimer = null;
 
@@ -208,10 +347,10 @@ async function refreshTabsBarBadges(){
     const r = await fetch('/api/tabs'); if(!r.ok) return;
     const list = await r.json(); const bySpot = new Map(list.map(t=>[t.spot,t]));
     document.querySelectorAll('.tabbtn').forEach(btn=>{
-      const spot=btn.dataset.spot;
+      const spot = btn.dataset.spot;
       btn.classList.toggle('active', currentTab && currentTab.spot===spot);
-      const old=btn.querySelector('.tabbadge'); if(old) old.remove();
-      const t=bySpot.get(spot);
+      const old = btn.querySelector('.tabbadge'); if(old) old.remove();
+      const t = bySpot.get(spot);
       if(t && t.item_count>0){
         const b=document.createElement('span'); b.className='tabbadge';
         b.textContent=`${t.item_count} • £${(t.subtotal).toFixed(2)}`;
@@ -236,26 +375,27 @@ async function selectSpot(spot){
   }catch(e){ alert('Network error: '+e.message); }
 }
 
-/* Quick Sale: leave tab mode, start fresh */
+/* Quick Sale: save current tab (if any) then clear for a fresh sale */
 document.getElementById('quickSaleBtn').addEventListener('click', async ()=>{
   if(currentTab) await saveTabNow();
-  currentTab = null;
-  cart = [];
-  renderCart();
-  document.getElementById('payment').value = 'Cash';
-  document.getElementById('received').value = '';
-  document.getElementById('staff').value = '';
-  document.getElementById('tabStatus').textContent = 'Mode: Quick Sale';
+  currentTab = null; cart=[]; renderCart();
+  document.getElementById('payment').value='Cash';
+  document.getElementById('received').value='';
+  document.getElementById('staff').value='';
+  document.getElementById('tabStatus').textContent='Mode: Quick Sale';
   refreshTabsBarBadges();
 });
+
+/* Tab button clicks */
 document.getElementById('tabsBar').addEventListener('click', e=>{
   const btn=e.target.closest('.tabbtn'); if(!btn) return; selectSpot(btn.dataset.spot);
 });
 
-/* Boot */
+/* ---------------------- BOOT ------------------------------- */
 setInterval(refreshTabsBarBadges, 20000);
 refreshTabsBarBadges();
 loadMenu();
+renderCart();
 </script>
 </body>
 </html>
