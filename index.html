@@ -9,13 +9,10 @@
     header { background:#111; padding:12px; display:flex; align-items:center; gap:10px; }
     header img { height:40px; border-radius:8px; }
     header h1 { margin:0; font-size:1.4em; color:#ff9933; }
-
-    /* Tabs bar */
     #tabsBar { display:flex; gap:6px; flex-wrap:wrap; padding:8px 10px; background:#0e0e15; border-bottom:1px solid #333 }
     .tabbtn{ background:#222; border:1px solid #444; color:#fff; border-radius:6px; padding:8px 10px; cursor:pointer }
     .tabbtn.active{ outline:2px solid #ff9933; }
     .tabbadge{ margin-left:6px; color:#9fd09f; font-size:.85em }
-
     main { display:flex; flex-wrap:wrap; }
     section { flex:1 1 50%; padding:10px; box-sizing:border-box; }
     h2 { margin-top:0; cursor:pointer; background:#333; padding:6px; border-radius:6px; }
@@ -39,7 +36,6 @@
     <h1>Cafe Qahwaan — POS</h1>
   </header>
 
-  <!-- Tabs bar -->
   <div id="tabsBar">
     <strong style="margin-right:6px;color:#ff9933">Tabs:</strong>
     <button class="tabbtn" data-spot="T1">T1</button>
@@ -64,11 +60,7 @@
         <div class="total">Subtotal: <span id="subtotal">£0.00</span></div>
 
         <label>Payment method
-          <select id="payment">
-            <option>Cash</option>
-            <option>Card</option>
-            <option>Online</option>
-          </select>
+          <select id="payment"><option>Cash</option><option>Card</option><option>Online</option></select>
         </label>
         <label>Staff <input id="staff" placeholder="Name or initials"></label>
 
@@ -84,15 +76,8 @@
         <div class="total">Change due: <span id="change">£0.00</span></div>
 
         <div style="display:flex;justify-content:space-between">
-          <!-- Quick Sale (immediate) -->
-          <button class="action submit" onclick="submitOrder()">Submit order</button>
           <button class="action clear" onclick="clearCart()">Clear cart</button>
-        </div>
-
-        <!-- Tab finalize (auto-save enabled; no Save/Hold button) -->
-        <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <span></span>
-          <button class="action submit" style="background:#1f8fff" onclick="finalizeTab()">Finalize / Pay</button>
+          <button class="action submit" style="background:#1f8fff" onclick="finalizeOrQuick()">Finalize / Pay</button>
         </div>
 
         <div id="tabStatus" class="total" style="font-size:.95em;color:#bbb;margin-top:6px">Mode: Quick Sale</div>
@@ -108,12 +93,10 @@
   </main>
 
 <script>
-/* ---------- DATA & HELPERS ---------- */
 let menuData = [];
 let cart = [];
 const money = n => "£" + (Number(n||0).toFixed(2));
 
-/* ---------- LOAD MENU ---------- */
 async function loadMenu(){
   const res = await fetch("/api/menu");
   if(!res.ok){ document.getElementById("menu").innerHTML = "<h2>Menu load failed</h2>"; return; }
@@ -135,8 +118,6 @@ async function loadMenu(){
     });
     menuDiv.appendChild(d);
   });
-
-  // Admin dropdown
   const sel = document.getElementById("adminItem");
   sel.innerHTML="";
   Object.values(menuData).flat().forEach(it=>{
@@ -147,7 +128,6 @@ async function loadMenu(){
   });
 }
 
-/* ---------- CART RENDER ---------- */
 function renderCart(){
   const tbl = document.getElementById("cart");
   tbl.innerHTML="";
@@ -168,122 +148,84 @@ function renderCart(){
   document.getElementById("change").textContent=money(rec - t);
 }
 
-/* ---------- CART MUTATORS ---------- */
-function addToCart(it){
-  const found = cart.find(c=>c.id==it.id);
-  if(found){ found.qty++; } else { cart.push({...it, qty:1}); }
-  renderCart(); cartChanged();
-}
-function incItem(id){ const f = cart.find(c=>c.id==id); if(f) f.qty++; renderCart(); cartChanged(); }
-function decItem(id){ const f = cart.find(c=>c.id==id); if(!f) return; if(f.qty>1) f.qty--; else cart = cart.filter(c=>c.id!=id); renderCart(); cartChanged(); }
+function addToCart(it){ const f=cart.find(c=>c.id==it.id); if(f){f.qty++;} else {cart.push({...it,qty:1});} renderCart(); cartChanged(); }
+function incItem(id){ const f=cart.find(c=>c.id==id); if(f) f.qty++; renderCart(); cartChanged(); }
+function decItem(id){ const f=cart.find(c=>c.id==id); if(!f) return; if(f.qty>1) f.qty--; else cart=cart.filter(c=>c.id!=id); renderCart(); cartChanged(); }
 function clearCart(){ cart=[]; renderCart(); cartChanged(); }
 function quickCash(n){ document.getElementById("received").value=n; renderCart(); }
 document.getElementById("received").addEventListener("input",renderCart);
 
-/* ---------- QUICK SALE (immediate) ---------- */
-async function submitOrder(){
-  if(cart.length==0){ alert("Cart empty"); return; }
-  const body = {
-    cart,
-    payment_method: document.getElementById("payment").value,
-    staff: document.getElementById("staff").value.trim(),
-    amount_received: Number(document.getElementById("received").value || 0)
-  };
-  if(!body.staff){ alert("Enter staff"); return; }
+/* ---------- Unified pay button ---------- */
+async function finalizeOrQuick(){
+  if(cart.length===0){ alert('Cart empty'); return; }
+  const staff = document.getElementById('staff').value.trim();
+  if(!staff){ alert('Enter staff'); return; }
+  const payment_method = document.getElementById('payment').value;
+  const amount_received = Number(document.getElementById('received').value || 0);
 
-  try{
-    const res = await fetch("/api/sale", {
-      method: "POST", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(body)
+  if(currentTab){
+    await saveTabNow(); // make sure tab is up to date
+    const r = await fetch('/api/tab/finalize', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tab_id: currentTab.tab_id, payment_method, staff, amount_received })
     });
-    if(!res.ok){ const t = await res.text(); alert("Error saving: " + t); return; }
-    const html = await res.text();
-    document.open(); document.write(html); document.close();
-  }catch(err){ alert("Network error: " + err.message); }
+    const txt = await r.text();
+    if(!r.ok){ alert('Finalize error: ' + txt); return; }
+    document.open(); document.write(txt); document.close();
+  }else{
+    // Quick Sale path uses /api/sale
+    const r = await fetch('/api/sale', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ cart, payment_method, staff, amount_received })
+    });
+    const txt = await r.text();
+    if(!r.ok){ alert('Sale error: ' + txt); return; }
+    document.open(); document.write(txt); document.close();
+  }
 }
 
-/* ---------- ADMIN PRICE UPDATE ---------- */
-async function updatePrice(){
-  const id = document.getElementById("adminItem").value;
-  const p = Number(document.getElementById("adminPrice").value);
-  if(!(p>=0)) return alert("Enter price");
-  const res = await fetch("/api/update_price",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,new_price:p})});
-  if(res.ok){ alert("Updated"); loadMenu(); } else alert("Error");
-}
-
-/* ================== TABS (AUTO-SAVE: immediate + debounced) ================== */
+/* ================== Tabs (auto-save) ================== */
 let currentTab = null;   // { tab_id, spot }
-let saveTimer = null;    // debounce timer
+let saveTimer = null;
 
-// Save current tab cart to server (sends tab_id + spot)
 async function saveTabNow(){
   if(!currentTab) return;
   try{
     const res = await fetch('/api/tab/save', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        tab_id: currentTab.tab_id,
-        spot: currentTab.spot,   // required for UPSERT insert
-        cart
-      })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tab_id: currentTab.tab_id, spot: currentTab.spot, cart })
     });
     const text = await res.text();
-    if(!res.ok){
-      alert('Tab save error: ' + text);
-      return;
-    }
-    // console.log('Saved tab:', text);
+    if(!res.ok){ alert('Tab save error: ' + text); return; }
     refreshTabsBarBadges();
-  }catch(e){
-    alert('Network error saving tab: ' + e.message);
-  }
+  }catch(e){ alert('Network error saving tab: ' + e.message); }
 }
-
-// Debounced follow-up save
-function scheduleSave(){
-  if(!currentTab) return;
-  if(saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveTabNow, 300); // 0.3s debounce
-}
-
-// Call after every cart change while in tab mode
+function scheduleSave(){ if(!currentTab) return; if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(saveTabNow,300); }
 function cartChanged(){ saveTabNow(); scheduleSave(); }
 
 async function refreshTabsBarBadges(){
   try{
-    const r = await fetch('/api/tabs');
-    if(!r.ok) return;
-    const list = await r.json();
-    const bySpot = new Map(list.map(t=>[t.spot, t]));
+    const r = await fetch('/api/tabs'); if(!r.ok) return;
+    const list = await r.json(); const bySpot = new Map(list.map(t=>[t.spot,t]));
     document.querySelectorAll('.tabbtn').forEach(btn=>{
-      const spot = btn.dataset.spot;
+      const spot=btn.dataset.spot;
       btn.classList.toggle('active', currentTab && currentTab.spot===spot);
-      const old = btn.querySelector('.tabbadge'); if(old) old.remove();
-      const t = bySpot.get(spot);
+      const old=btn.querySelector('.tabbadge'); if(old) old.remove();
+      const t=bySpot.get(spot);
       if(t && t.item_count>0){
-        const b = document.createElement('span');
-        b.className = 'tabbadge';
-        b.textContent = `${t.item_count} • £${(t.subtotal).toFixed(2)}`;
+        const b=document.createElement('span'); b.className='tabbadge';
+        b.textContent=`${t.item_count} • £${(t.subtotal).toFixed(2)}`;
         btn.appendChild(b);
       }
     });
   }catch(_){}
 }
-function ensureArray(val){
-  if (Array.isArray(val)) return val;
-  if (val == null) return [];
-  try { const p = typeof val==="string" ? JSON.parse(val) : val; return Array.isArray(p)?p:[]; } catch { return []; }
-}
+function ensureArray(v){ if(Array.isArray(v))return v; if(v==null)return[]; try{const p=typeof v==="string"?JSON.parse(v):v; return Array.isArray(p)?p:[]}catch{return[]} }
 
 async function selectSpot(spot){
-  // save the current tab before switching away
   await saveTabNow();
   try{
-    const r = await fetch('/api/tab/open', {
-      method: 'POST', headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ spot })
-    });
+    const r = await fetch('/api/tab/open', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ spot }) });
     if(!r.ok){ alert('Tab open error'); return; }
     const t = await r.json();
     currentTab = { tab_id: t.tab_id, spot: t.spot };
@@ -294,48 +236,20 @@ async function selectSpot(spot){
   }catch(e){ alert('Network error: '+e.message); }
 }
 
-async function finalizeTab(){
-  if(!currentTab){ alert('Pick a tab first'); return; }
-  if(cart.length===0){ alert('Cart empty'); return; }
-  await saveTabNow(); // ensure last changes persisted
-  const body = {
-    tab_id: currentTab.tab_id,
-    payment_method: document.getElementById('payment').value,
-    staff: document.getElementById('staff').value.trim(),
-    amount_received: Number(document.getElementById('received').value || 0)
-  };
-  if(!body.staff){ alert('Enter staff'); return; }
-  try{
-    const r = await fetch('/api/tab/finalize', {
-      method: 'POST', headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify(body)
-    });
-    if(!r.ok){ const t = await r.text(); alert('Finalize error: '+t); return; }
-    const html = await r.text();
-    document.open(); document.write(html); document.close();
-  }catch(e){ alert('Network error: '+e.message); }
-}
-
-/* Quick Sale button: save current tab (if any), then start fresh */
+/* Quick Sale: leave tab mode, start fresh */
 document.getElementById('quickSaleBtn').addEventListener('click', async ()=>{
-  if (currentTab) { await saveTabNow(); }
+  if(currentTab) await saveTabNow();
   currentTab = null;
-  cart = [];            // clear items for a clean quick sale session
+  cart = [];
   renderCart();
-
-  // optional: reset inputs
   document.getElementById('payment').value = 'Cash';
   document.getElementById('received').value = '';
   document.getElementById('staff').value = '';
-
   document.getElementById('tabStatus').textContent = 'Mode: Quick Sale';
   refreshTabsBarBadges();
 });
-
-/* Tab button clicks */
 document.getElementById('tabsBar').addEventListener('click', e=>{
-  const btn = e.target.closest('.tabbtn'); if(!btn) return;
-  selectSpot(btn.dataset.spot);
+  const btn=e.target.closest('.tabbtn'); if(!btn) return; selectSpot(btn.dataset.spot);
 });
 
 /* Boot */
