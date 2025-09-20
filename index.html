@@ -6,17 +6,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   :root{
-    --bg:#f7f4ed;
-    --panel:#fffdf9;
-    --glass:#ffffffcc;
-    --ink:#2f261f;
+    /* Palette (oak + coffee on beige) */
+    --bg:#f6f1e6;
+    --panel:#fffdf8;
+    --ink:#2e251c;
     --muted:#7a6b5f;
-    --line:#eadfcd;
-    --brand:#755b4b;
-    --accent:#6c5ce7;
-    --ok:#36b37e;
-    --danger:#e85c4a;
+    --line:#e7dbc8;
+    --oak:#8a5a2e;         /* main oak tone */
+    --oak-deep:#6e441e;
+    --chip:#efeadf;
+    --ok:#2fab73;
+    --danger:#e25545;
     --blue:#1f8fff;
+    --qs:#ff8a00;          /* Quick Sale highlight */
+    --qs-deep:#ff6a00;
     --radius:16px;
     --shadow:0 10px 30px rgba(0,0,0,.06);
     --shadow-soft:0 6px 18px rgba(0,0,0,.05);
@@ -33,49 +36,60 @@
   /* Header */
   header{
     position:sticky; top:0; z-index:20;
-    display:flex; align-items:center; gap:12px;
-    padding:14px 18px;
-    background:linear-gradient(180deg,#fffaf2,#fff6ec);
+    display:flex; align-items:center; gap:14px;
+    padding:16px 18px;
+    background:linear-gradient(180deg,#fff8ee,#fff4e3);
     border-bottom:1px solid var(--line);
   }
-  header img{width:36px;height:36px;border-radius:10px}
-  header .title{font-weight:800}
-  header .sub{color:var(--muted);font-size:.95rem}
-
-  /* Tabs */
-  #tabsBar{
-    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    padding:10px 18px; border-bottom:1px solid var(--line); background:#fffdf8;
+  header img{width:42px;height:42px;border-radius:10px}
+  .brand{
+    font-weight:900; letter-spacing:.3px;
+    font-size:1.4rem;
+    color:var(--oak);
+    text-shadow:0 1px 0 #fff3;
   }
+
+  /* Tables (previous Tabs) row */
+  #tabsBar{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    padding:10px 18px; border-bottom:1px solid var(--line); background:#fffaf2;
+  }
+  .label{ color:var(--muted); font-weight:800; }
   .tabbtn{
     appearance:none; border:1px solid var(--line); background:#fff;
-    color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer;
-    font-weight:700; box-shadow:var(--shadow-soft);
+    color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer;
+    font-weight:800; box-shadow:var(--shadow-soft);
   }
-  .tabbtn.active{ outline:2px solid var(--brand); background:#fff; }
+  .tabbtn.active{ outline:2px solid var(--oak); background:#fff; }
   .tabbadge{ margin-left:6px; color:#246b2b; font-size:.85em }
+
+  /* Quick sale: brighter + glow */
   #quickSaleBtn{
-    margin-left:auto; border:1px solid var(--line); background:#fff;
-    color:var(--ink); padding:8px 12px; border-radius:12px; cursor:pointer;
-    box-shadow:var(--shadow-soft);
+    margin-left:auto; padding:10px 16px;
+    background:linear-gradient(180deg,var(--qs),var(--qs-deep));
+    color:#fff; border:none; border-radius:14px; cursor:pointer;
+    font-weight:900; letter-spacing:.2px; box-shadow:0 10px 18px #ff8a0050, inset 0 1px 0 #fff6;
   }
 
-  /* Toolbar (search + pills) */
-  .toolbar{
-    display:flex; gap:12px; align-items:center; padding:12px 18px;
+  /* Category chips (prominent) */
+  .cats{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    padding:14px 18px;
   }
-  .search{
-    flex:1; display:flex; align-items:center; gap:10px;
-    background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px 12px;
+  .pill{
+    background:var(--chip);
+    border:1px solid var(--line);
+    color:var(--oak-deep);
+    padding:10px 14px;
+    border-radius:999px;
+    font-weight:900; cursor:pointer;
     box-shadow:var(--shadow-soft);
   }
-  .search input{ flex:1; border:none; outline:none; background:transparent; font-size:1rem; color:var(--ink); }
-  .pills{ display:flex; gap:8px; flex-wrap:wrap }
-  .pill{
-    border:1px solid var(--line); background:#fff; color:var(--ink);
-    padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:700;
+  .pill.active{
+    background:#fff;
+    outline:2px solid var(--oak);
+    color:var(--oak);
   }
-  .pill.active{ background:#4636e61a; color:#453bd2; border-color:#dcd6ff }
 
   /* Layout */
   main{ display:grid; grid-template-columns:1.35fr .9fr; gap:16px; padding:0 18px 18px; }
@@ -97,7 +111,7 @@
   }
   .card:active{ transform:translateY(1px); box-shadow:var(--shadow); }
   .card-top{ display:flex; align-items:center; justify-content:space-between; gap:8px }
-  .card-name{ font-weight:800; display:flex; align-items:center; gap:6px }
+  .card-name{ font-weight:900; display:flex; align-items:center; gap:6px }
   .card-plus{
     width:28px;height:28px;border-radius:8px;border:1px solid var(--line); background:#fff; font-weight:800;
     display:grid; place-items:center; box-shadow:var(--shadow-soft);
@@ -105,7 +119,7 @@
   .card-price{ color:var(--muted); font-weight:700; }
 
   /* Cart */
-  .cart{ background:var(--glass); backdrop-filter: blur(4px); }
+  .cart{ background:#ffffffcc; backdrop-filter: blur(4px); }
   .cart h3{ margin:0 0 10px; font-size:1.05rem }
   .cart-list{ border:1px dashed var(--line); border-radius:12px; background:#fff; }
   .row{
@@ -118,7 +132,7 @@
     border:1px solid var(--line); border-radius:999px; background:#fff;
   }
   .qtybtn{ width:26px;height:26px;border-radius:8px;border:1px solid var(--line); background:#fff; }
-  .money{ font-weight:800 }
+  .money{ font-weight:900 }
   .muted{ color:var(--muted) }
 
   .totals{ margin-top:12px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px }
@@ -134,10 +148,10 @@
   .btn.danger{ background:var(--danger); color:#fff }
   .btn.primary{ background:var(--blue); color:#fff }
 
-  .admin .title{ font-weight:800; margin-bottom:6px }
+  .admin .title{ font-weight:900; margin-bottom:6px; color:var(--oak-deep) }
   .hint{ color:var(--muted); font-size:.92rem }
 
-  #tabStatus{ color:var(--muted); margin-top:8px; font-weight:700 }
+  #tabStatus{ color:var(--muted); margin-top:8px; font-weight:800 }
 </style>
 </head>
 <body>
@@ -145,15 +159,12 @@
   <!-- Header -->
   <header>
     <img src="/logo.png" alt="Cafe">
-    <div>
-      <div class="title">Cafe Qahwaan — POS</div>
-      <div class="sub">Tap, hold on table, finalize with style</div>
-    </div>
+    <div class="brand">Cafe Qahwaan — POS</div>
   </header>
 
-  <!-- Tabs -->
+  <!-- Tables row (was Tabs) -->
   <div id="tabsBar">
-    <strong style="color:var(--muted)">Tabs:</strong>
+    <span class="label">Tables:</span>
     <button class="tabbtn" data-spot="T1">T1</button>
     <button class="tabbtn" data-spot="T2">T2</button>
     <button class="tabbtn" data-spot="T3">T3</button>
@@ -162,17 +173,11 @@
     <button class="tabbtn" data-spot="T6">T6</button>
     <button class="tabbtn" data-spot="B1">B1</button>
     <button class="tabbtn" data-spot="B2">B2</button>
-    <button id="quickSaleBtn">Quick Sale</button>
+    <button id="quickSaleBtn">⚡ Quick Sale</button>
   </div>
 
-  <!-- Toolbar: Search + category pills -->
-  <div class="toolbar">
-    <div class="search">
-      <span>🔎</span>
-      <input id="search" placeholder="Search menu… (e.g. tea, paratha)">
-    </div>
-    <div id="pillBar" class="pills"></div>
-  </div>
+  <!-- Prominent category chips -->
+  <div class="cats" id="pillBar"></div>
 
   <main>
     <!-- MENU GRID -->
@@ -282,12 +287,8 @@ function renderPills(cats){
   });
 }
 function filteredItems(){
-  const q = (document.getElementById("search").value||"").trim().toLowerCase();
-  let list = activeCategory ? (menuData[activeCategory]||[]) : flatMenu;
-  if(q){
-    list = list.filter(it => it.name.toLowerCase().includes(q));
-  }
-  return list;
+  // No search; only the active category (or all if none)
+  return activeCategory ? (menuData[activeCategory]||[]) : flatMenu;
 }
 function renderGrid(){
   const grid = document.getElementById("grid"); grid.innerHTML="";
@@ -309,7 +310,6 @@ function renderGrid(){
     grid.appendChild(card);
   });
 }
-document.getElementById("search").addEventListener("input", renderGrid);
 
 function fillAdminSelect(){
   const sel = document.getElementById("adminItem"); sel.innerHTML="";
@@ -382,7 +382,7 @@ async function finalizeOrQuick(){
   }
 }
 
-/* ============ TABS (auto-save) ============ */
+/* ============ TABLES (auto-save) ============ */
 let currentTab=null; let saveTimer=null;
 
 async function saveTabNow(){
@@ -416,7 +416,7 @@ async function selectSpot(spot){
   await saveTabNow();
   try{
     const r=await fetch("/api/tab/open",{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ spot }) });
-    if(!r.ok){ alert("Tab open error"); return; }
+    if(!r.ok){ alert("Table open error"); return; }
     const t=await r.json();
     currentTab={ tab_id:t.tab_id, spot:t.spot };
     cart=ensureArray(t.cart);
@@ -437,7 +437,7 @@ document.getElementById("quickSaleBtn").addEventListener("click", async ()=>{
   refreshTabsBarBadges();
 });
 
-/* Tab clicks */
+/* Table clicks */
 document.getElementById("tabsBar").addEventListener("click", e=>{
   const b=e.target.closest(".tabbtn"); if(!b) return; selectSpot(b.dataset.spot);
 });
