@@ -40,14 +40,16 @@ export async function onRequestPost({ request, env }) {
   if (!cart.length) return new Response("Cart is empty", { status: 400 });
 
   const subtotal = cart.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 1), 0);
+  const item_count = cart.reduce((s, i) => s + Number(i.qty || 0), 0);
   const received = Number(amount_received || 0);
   const change_due = Math.max(0, received - subtotal);
 
-  // 4) Insert order (generate UUID; do NOT rely on created_at/source/spot)
+  // 4) Insert order (generate UUID; match your schema)
   const orderRow = {
-    id: crypto.randomUUID(),    // <- important: avoid NOT NULL id issues
+    id: crypto.randomUUID(),    // avoid NOT NULL id issues
     cart,
     subtotal,
+    item_count,                 // <-- important (your table requires it)
     payment_method,
     staff,
     amount_received: received,
