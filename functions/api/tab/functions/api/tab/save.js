@@ -1,28 +1,39 @@
+// POST /api/tab/save  { tab_id, spot, cart }
+// Robust upsert save. Always includes `spot` to satisfy NOT NULL.
 export async function onRequestPost({ request, env }) {
-  const { tab_id, cart } = await request.json();
-  if (!tab_id || !Array.isArray(cart)) {
-    return new Response("Missing tab_id or cart", { status: 400 });
+  const { tab_id, spot, cart } = await request.json();
+
+  if (!tab_id || !spot || !Array.isArray(cart)) {
+    return new Response("Missing tab_id, spot, or cart[]", { status: 400 });
   }
 
-  const url = `${env.SUPABASE_URL}/rest/v1/tabs?id=eq.${encodeURIComponent(tab_id)}`;
+  const url = `${env.SUPABASE_URL}/rest/v1/tabs?on_conflict=id`;
+
+  const row = {
+    id: tab_id,
+    spot,                 // <-- important for first-time insert
+    status: "open",
+    cart,
+    updated_at: new Date().toISOString()
+  };
+
   const resp = await fetch(url, {
-    method: "PATCH",
+    method: "POST",
     headers: {
       apikey: env.SUPABASE_SERVICE_KEY,
       Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
       "Content-Type": "application/json",
-      Prefer: "return=representation"
+      Prefer: "resolution=merge-duplicates,return=minimal"
     },
-    body: JSON.stringify({ cart, updated_at: new Date().toISOString() })
+    body: JSON.stringify([row])
   });
 
-  if (resp.status === 204) return json({ ok: true });
-  if (!resp.ok) return new Response(await resp.text(), { status: 500 });
+  if (!resp.ok && resp.status !== 204) {
+    const txt = await resp.text();
+    return new Response(`Save failed: ${txt}`, { status: 500 });
+  }
 
-  let data = [];
-  try { data = await resp.json(); } catch {}
-  const saved = Array.isArray(data) && data[0] ? data[0] : { cart };
-  return json({ ok: true, cart: saved.cart });
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { "Content-Type": "application/json" }
+  });
 }
-
-function json(obj){ return new Response(JSON.stringify(obj), { headers: { "Content-Type": "application/json" } }); }
