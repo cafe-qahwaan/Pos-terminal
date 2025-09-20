@@ -79,7 +79,7 @@
           <button class="action submit" onclick="submitOrder()">Submit order</button>
           <button class="action clear" onclick="clearCart()">Clear cart</button>
         </div>
-        <!-- Tab finalize only (auto-save is enabled, so no Save/Hold button) -->
+        <!-- Tab finalize (auto-save is enabled; no Save/Hold button) -->
         <div style="display:flex;justify-content:space-between;margin-top:6px">
           <span></span>
           <button class="action submit" style="background:#1f8fff" onclick="finalizeTab()">Finalize / Pay</button>
@@ -257,6 +257,15 @@ async function refreshTabsBarBadges(){
   }catch(_){}
 }
 
+function ensureArray(val){
+  if (Array.isArray(val)) return val;
+  if (val == null) return [];
+  try {
+    const parsed = typeof val === "string" ? JSON.parse(val) : val;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
 async function selectSpot(spot){
   // Save current tab if dirty before switching
   if (currentTab && dirty) { await autoSaveTab(); }
@@ -268,7 +277,7 @@ async function selectSpot(spot){
     if(!r.ok){ alert('Tab open error'); return; }
     const t = await r.json();
     currentTab = { tab_id: t.tab_id, spot: t.spot };
-    cart = Array.isArray(t.cart) ? t.cart : [];
+    cart = ensureArray(t.cart);
     dirty = false; // loaded fresh
     renderCart();
     document.getElementById('tabStatus').textContent = `Mode: Tab ${currentTab.spot}`;
